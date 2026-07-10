@@ -6,7 +6,7 @@ Chủ đề: Công cụ sinh Test Case tự động từ Đặc tả yêu cầu 
 - Điểm nhấn của hệ thống là phương pháp tiếp cận Human-in-the-loop: AI đóng vai trò phân tích và đề xuất tình huống, kỹ sư kiểm thử (Tester/QA) sẽ trực tiếp rà soát, tinh chỉnh và kiểm soát chất lượng cuối cùng trước khi đưa vào luồng kiểm thử thực tế.
 
 2. Các tính năng chính (Key Features):
-- Nhập yêu cầu (Requirement Input):** Hỗ trợ nhập/dán mô tả tính năng và tiêu chí chấp nhận (Acceptance Criteria).
+- Nhập yêu cầu (Requirement Input): Hỗ trợ nhập/dán mô tả tính năng và tiêu chí chấp nhận (Acceptance Criteria).
 - Tự động sinh Test Case: Khai thác AI để sinh hàng loạt kịch bản kiểm thử có cấu trúc chuẩn.
 - Gợi ý điều kiện biên (Edge Cases): Nhận diện và đề xuất các tình huống giới hạn/ngoại lệ dễ bị bỏ qua.
 - Rà soát & Duyệt (Review & Approve): Giao diện tương tác cho phép đánh dấu hợp lệ, chỉnh sửa và khử trùng lặp các kịch bản kiểm thử.

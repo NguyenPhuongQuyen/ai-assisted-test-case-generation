@@ -1,0 +1,40 @@
+@baseUrl = http://localhost:8000
+@token = PASTE_QA_TOKEN_HERE
+@requirementId = 1
+
+### Health
+GET {{baseUrl}}/health
+
+### Login QA
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "qa@example.com",
+  "password": "Demo_Change_Me_123!"
+}
+
+### Create requirement (replace token)
+POST {{baseUrl}}/api/v1/requirements
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "module_id": 1,
+  "content": "Người dùng đã đăng nhập có thể đặt từ 1 đến 8 vé trong một giao dịch. Hệ thống từ chối nếu chọn hơn 8 vé.",
+  "acceptance_criteria": "1 đến 8 vé hợp lệ; 9 vé bị từ chối. Không cho đặt ghế đã có người giữ."
+}
+
+### Generate draft test cases with OpenAI
+POST {{baseUrl}}/api/v1/requirements/{{requirementId}}/test-cases
+Authorization: Bearer {{token}}
+
+### Negative - missing module
+POST {{baseUrl}}/api/v1/requirements
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "module_id": 999,
+  "content": "Requirement text long enough to pass the Pydantic minimum length validation."
+}

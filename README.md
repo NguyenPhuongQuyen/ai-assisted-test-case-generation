@@ -56,9 +56,6 @@ Người nộp phải tự đọc, chạy thử, chỉnh sửa và giải thích
 
 OpenAI API chỉ được dùng qua adapter riêng; model được cấu hình bằng `OPENAI_MODEL` để không hardcode nhà cung cấp/model trong nghiệp vụ.
 
-## Screenshot
-Tuần 05: sau khi chạy thành công, đặt ảnh Swagger và màn hình frontend vào `docs/assets/` rồi cập nhật mục này.
-
 ## Tài khoản demo local
 Sau khi chạy seed:
 - Admin: `admin@example.com`

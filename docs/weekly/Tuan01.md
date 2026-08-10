@@ -1,0 +1,13 @@
+# BÁO CÁO TIẾN ĐỘ TUẦN 1
+
+## 1. Đã làm
+- Đọc hiểu tài liệu định hướng và yêu cầu nghiệp vụ (BRD) của đề tài.
+- Khởi tạo Repository trên GitHub, thiết lập cấu trúc thư mục ban đầu.
+- Viết bản nháp Chương 1 (Mở đầu) và Chương 2 (Khảo sát hiện trạng).
+
+## 2. Đang vướng
+- Tìm hiểu thêm về kỹ thuật ép kiểu dữ liệu Structured Output bằng JSON Schema với Claude API.
+
+## 3. Kế hoạch tuần tới
+- Đặc tả yêu cầu chức năng (SRS) và Phi chức năng.
+- Vẽ sơ đồ Use Case và thiết kế mô hình dữ liệu (ERD).

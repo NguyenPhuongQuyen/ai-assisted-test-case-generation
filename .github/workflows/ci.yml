@@ -1,0 +1,42 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - main
+      - tuan-06
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  backend-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: "pip"
+          cache-dependency-path: src/backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r src/backend/requirements.txt
+
+      - name: Compile Python source
+        run: python -m compileall -q src/backend/app
+
+      - name: Ruff check
+        run: python -m ruff check src/backend
+
+      - name: Ruff format check
+        run: python -m ruff format --check src/backend
+
+      - name: Unit tests
+        run: python -m pytest

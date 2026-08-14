@@ -1,6 +1,8 @@
 from enum import StrEnum
 
 AUTH_SCHEME_BEARER = "bearer"
+AI_GENERATION_QUEUE = "ai-generation"
+GENERATION_TASK_NAME = "testcases.generate"
 
 
 class UserRole(StrEnum):
@@ -16,6 +18,13 @@ class TestCaseStatus(StrEnum):
     APPROVED = "approved"
     EXPORTED = "exported"
     REJECTED = "rejected"
+
+
+class GenerationJobStatus(StrEnum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
 
 class Priority(StrEnum):
@@ -42,4 +51,6 @@ class ErrorCode(StrEnum):
     ACCOUNT_LOCKED = "ACCOUNT_LOCKED"
     AI_PROVIDER_ERROR = "AI_PROVIDER_ERROR"
     AI_OUTPUT_INVALID = "AI_OUTPUT_INVALID"
+    GENERATION_JOB_NOT_FOUND = "GENERATION_JOB_NOT_FOUND"
+    GENERATION_QUEUE_UNAVAILABLE = "GENERATION_QUEUE_UNAVAILABLE"
     INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"

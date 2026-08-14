@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.common.constants import Priority, TestCaseStatus
+from app.common.constants import GenerationJobStatus, Priority
 
 
 class GeneratedTestCase(BaseModel):
@@ -21,13 +21,8 @@ class GeneratedTestCaseBatch(BaseModel):
     test_cases: list[GeneratedTestCase] = Field(min_length=1, max_length=50)
 
 
-class TestCaseResponse(GeneratedTestCase):
+class GenerationJobResponse(BaseModel):
     id: int
     requirement_id: int
-    module_id: int
-    status: TestCaseStatus
-
-
-class GenerationResponse(BaseModel):
-    requirement_id: int
-    test_cases: list[TestCaseResponse]
+    status: GenerationJobStatus
+    error_code: str | None

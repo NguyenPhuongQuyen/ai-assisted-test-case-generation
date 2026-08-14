@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     ai_rate_limit_max_requests: int = Field(default=10, ge=1, le=100)
     ai_rate_limit_window_seconds: int = Field(default=300, ge=60, le=3600)
 
+    celery_broker_url: str = Field(min_length=1)
+
     frontend_origin: str = "http://localhost:3000"
     log_level: str = "INFO"
     demo_user_password: str = Field(default="Demo_Change_Me_123!", min_length=10)

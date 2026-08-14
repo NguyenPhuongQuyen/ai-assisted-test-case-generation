@@ -1,0 +1,3 @@
+from app.common.celery_app import get_celery_app
+
+celery_app = get_celery_app()

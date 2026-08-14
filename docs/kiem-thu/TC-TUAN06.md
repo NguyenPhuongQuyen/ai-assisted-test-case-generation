@@ -80,3 +80,62 @@
 - Không ghi OpenAI provider thật là PASS vì lần gọi thật còn bị giới hạn credit.
 - Unit Test AI sử dụng mock.
 - Manual test chưa chạy giữ trạng thái `Chưa chạy`.
+
+---
+
+## AP-08 - Background Job cho AI Generation
+
+### TC-JOB-001 - Submit Generation Job hợp lệ
+
+- Loại kiểm thử: Unit Test
+- Tiền điều kiện: QA sở hữu Requirement.
+- Hành động: Gửi yêu cầu sinh Test Case.
+- Kết quả mong đợi:
+  - Generation Job được tạo với trạng thái `QUEUED`.
+  - Rate limit được kiểm tra.
+  - Job được enqueue đúng `job_id`.
+  - Không chờ OpenAI hoàn thành trong HTTP request.
+- Test tự động: `test_submit_generation_creates_queued_job_and_enqueues`
+- Kết quả: PASS - 15/08/2026.
+
+### TC-JOB-002 - QA submit Requirement của người khác
+
+- Loại kiểm thử: Unit Test / Authorization
+- Tiền điều kiện: Requirement thuộc QA khác.
+- Hành động: QA hiện tại yêu cầu sinh Test Case.
+- Kết quả mong đợi:
+  - Trả lỗi quyền `FORBIDDEN_RECORD`.
+  - Không tạo Generation Job.
+  - Không enqueue task.
+- Test tự động: `test_submit_other_users_requirement_is_forbidden`
+- Kết quả: PASS - 15/08/2026.
+
+### TC-JOB-003 - QA xem Generation Job của người khác
+
+- Loại kiểm thử: Unit Test / Record-level Authorization
+- Tiền điều kiện: Generation Job thuộc QA khác.
+- Hành động: QA hiện tại lấy trạng thái job.
+- Kết quả mong đợi:
+  - Trả `FORBIDDEN_RECORD`.
+  - Không cho đọc trạng thái job của người khác.
+- Test tự động: `test_get_other_users_job_is_forbidden`
+- Kết quả: PASS - 15/08/2026.
+
+### TC-JOB-004 - Queue không khả dụng
+
+- Loại kiểm thử: Unit Test / Error Handling
+- Tiền điều kiện: Broker/queue phát sinh lỗi khi enqueue.
+- Hành động: Submit Generation Job.
+- Kết quả mong đợi:
+  - Job chuyển sang `FAILED`.
+  - Error code là `GENERATION_QUEUE_UNAVAILABLE`.
+  - Không ghi nhận generation thành công.
+- Test tự động: `test_queue_failure_marks_job_failed`
+- Kết quả: PASS - 15/08/2026.
+
+### Kết quả AP-08
+
+- 4/4 Unit Test AP-08: PASS.
+- Tổng Unit Test backend: 15/15 PASS.
+- RabbitMQ/Celery worker integration chưa chạy trên local.
+- Integration test cho luồng nghiệp vụ chính theo lộ trình quy định bắt đầu bắt buộc ở Tuần 8.

@@ -68,3 +68,49 @@ Sau khi chạy seed:
 - `docs/kiem-thu/Tuan05_OpenAI.postman_collection.json`
 - `docs/kiem-thu/Tuan05_OpenAI.postman_environment.json`
 - `docs/kiem-thu/database_checks.sql`
+
+---
+
+## Background Job cho AI Generation - Tuần 06
+
+Tác vụ sinh Test Case bằng AI được đưa sang background job bằng Celery để HTTP request không phải chờ OpenAI xử lý hoàn tất.
+
+### Thành phần
+
+- FastAPI
+- PostgreSQL
+- SQLAlchemy Async
+- Alembic
+- OpenAI Adapter
+- Celery 5.6
+- RabbitMQ broker
+
+### Cấu hình
+
+Tạo file `.env` từ `.env.example` và điền các giá trị local cần thiết.
+
+```env
+CELERY_BROKER_URL=amqp://guest:guest@localhost:5672//MD
+
+---
+
+## Background Job cho AI Generation - Tuần 06
+
+Tác vụ sinh Test Case bằng AI được đưa sang background job bằng Celery để HTTP request không phải chờ OpenAI xử lý hoàn tất.
+
+### Thành phần
+
+- FastAPI
+- PostgreSQL
+- SQLAlchemy Async
+- Alembic
+- OpenAI Adapter
+- Celery 5.6
+- RabbitMQ broker
+
+### Cấu hình
+
+Tạo file `.env` từ `.env.example` và điền các giá trị local cần thiết.
+
+```env
+CELERY_BROKER_URL=amqp://guest:guest@localhost:5672//

@@ -111,4 +111,29 @@ CREATE INDEX ix_audit_logs_created_at ON audit_logs (created_at);
 
 INSERT INTO alembic_version (version_num) VALUES ('0001_week05_baseline') RETURNING alembic_version.version_num;
 
+-- Running upgrade 0001_week05_baseline -> 0002_week06_generation_jobs
+
+CREATE TYPE generation_job_status AS ENUM ('queued', 'running', 'completed', 'failed');
+
+CREATE TABLE generation_jobs (
+    id SERIAL NOT NULL,
+    requirement_id INTEGER NOT NULL,
+    created_by INTEGER NOT NULL,
+    status generation_job_status NOT NULL,
+    error_code VARCHAR(64),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+    PRIMARY KEY (id),
+    FOREIGN KEY(created_by) REFERENCES users (id) ON DELETE RESTRICT,
+    FOREIGN KEY(requirement_id) REFERENCES requirements (id) ON DELETE RESTRICT
+);
+
+CREATE INDEX ix_generation_jobs_requirement_id ON generation_jobs (requirement_id);
+
+CREATE INDEX ix_generation_jobs_created_by ON generation_jobs (created_by);
+
+CREATE INDEX ix_generation_jobs_status ON generation_jobs (status);
+
+UPDATE alembic_version SET version_num='0002_week06_generation_jobs' WHERE alembic_version.version_num = '0001_week05_baseline';
+
 COMMIT;

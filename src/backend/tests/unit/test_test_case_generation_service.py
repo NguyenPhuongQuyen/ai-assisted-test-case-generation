@@ -21,15 +21,13 @@ def build_service(*, requirement: object | None, ai_result: object) -> tuple[Gen
     )
     if not isinstance(ai_result, Exception):
         ai_adapter.generate_test_cases.return_value = ai_result
-    rate_limiter = SimpleNamespace(check=AsyncMock())
-    service = GenerationService(session, requirements, test_cases, audits, ai_adapter, rate_limiter)
+    service = GenerationService(session, requirements, test_cases, audits, ai_adapter)
     collaborators = SimpleNamespace(
         session=session,
         requirements=requirements,
         test_cases=test_cases,
         audits=audits,
         ai_adapter=ai_adapter,
-        rate_limiter=rate_limiter,
     )
     return service, collaborators
 

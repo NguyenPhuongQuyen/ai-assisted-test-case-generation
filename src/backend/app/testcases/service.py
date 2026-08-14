@@ -8,7 +8,6 @@ from app.auth.schemas import CurrentUser
 from app.common.ai.openai_adapter import OpenAIAdapter
 from app.common.constants import AuditAction, ErrorCode, TestCaseStatus, UserRole
 from app.common.exceptions import AppError
-from app.common.rate_limit import SlidingWindowRateLimiter
 from app.requirements.repository import RequirementRepository
 from app.testcases.models import TestCase
 from app.testcases.repository import TestCaseRepository
@@ -24,14 +23,12 @@ class TestCaseGenerationService:
         test_cases: TestCaseRepository,
         audits: AuditLogRepository,
         ai_adapter: OpenAIAdapter,
-        rate_limiter: SlidingWindowRateLimiter,
     ) -> None:
         self._session = session
         self._requirements = requirements
         self._test_cases = test_cases
         self._audits = audits
         self._ai = ai_adapter
-        self._rate_limiter = rate_limiter
 
     async def generate_draft_test_cases(self, requirement_id: int, current_user: CurrentUser) -> list[TestCase]:
         """Generate structured test cases and persist them only as DRAFT after permission/schema checks."""
@@ -43,8 +40,6 @@ class TestCaseGenerationService:
         if requirement.created_by != current_user.id and current_user.role not in {UserRole.MANAGER, UserRole.ADMIN}:
             raise AppError(ErrorCode.FORBIDDEN_RECORD, "Bạn không có quyền truy cập yêu cầu này.", 403)
 
-        # SE-15: cap repeated AI calls per user in the single-instance Week-5 demo.
-        await self._rate_limiter.check(f"ai-generation:{current_user.id}")
         generated = await self._ai.generate_test_cases(requirement.content, requirement.acceptance_criteria)
 
         # BR-02: Structured Output + Pydantic guarantees required fields before persistence.

@@ -46,7 +46,9 @@ Không commit `.env`. `.env.example` chỉ chứa giá trị mẫu vô hại (SE
 
 ## Tài liệu tiến độ
 - `docs/weekly/Tuan05.md`
+- `docs/weekly/Tuan06.md`
 - `docs/kiem-thu/TC-TUAN05.md`
+- `docs/kiem-thu/TC-TUAN06.md`
 - `docs/kiem-thu/matran-truyvet.md`
 - `docs/assets/NGUON.md`
 
@@ -63,12 +65,22 @@ Sau khi chạy seed:
 - QA: `qa@example.com`
 - Password: giá trị `DEMO_USER_PASSWORD` trong `.env` (file `.env.example` chỉ chứa mật khẩu mẫu vô hại).
 
-## Hướng dẫn chạy chi tiết và Postman
+## Kiểm thử thủ công và Postman
 - `docs/kiem-thu/Tuan05_OpenAI.postman_collection.json`
 - `docs/kiem-thu/Tuan05_OpenAI.postman_environment.json`
 - `docs/kiem-thu/database_checks.sql`
 
 ---
+
+## Cập nhật Tuần 06
+
+- GitHub Actions CI cho backend: cài dependency, Ruff và Unit Test.
+- Unit Test backend: 15/15 PASS.
+- Bổ sung regression test cho lỗi Unit Test phụ thuộc `.env`.
+- Bổ sung migration `generation_jobs` và cập nhật `database/schema.sql`.
+- Cập nhật `docs/kiem-thu/TC-TUAN06.md` và ma trận truy vết.
+- Chuyển tác vụ sinh test case sang mô hình background job theo AP-08.
+
 
 ## Background Job cho AI Generation - Tuần 06
 

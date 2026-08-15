@@ -54,7 +54,6 @@ Không commit `.env`. `.env.example` chỉ chứa giá trị mẫu vô hại (SE
 
 ## Nguồn tham khảo / AI hỗ trợ
 Skeleton ban đầu được xây dựng với sự hỗ trợ của ChatGPT (OpenAI) và được tổ chức lại theo Quy định Code ITEC4401.
-Người nộp phải tự đọc, chạy thử, chỉnh sửa và giải thích được mọi dòng code theo AI-01..AI-04.
 
 OpenAI API chỉ được dùng qua adapter riêng; model được cấu hình bằng `OPENAI_MODEL` để không hardcode nhà cung cấp/model trong nghiệp vụ.
 

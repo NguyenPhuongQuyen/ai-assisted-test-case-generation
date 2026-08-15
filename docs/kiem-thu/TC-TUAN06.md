@@ -2,12 +2,12 @@
 
 ## 1. Bằng chứng kiểm thử tự động
 
-- Ngày chạy Unit Test: 13/08/2026
-- Tested commit: `a40e8ce`
-- Kết quả: `10 passed`
+- Ngày chạy Unit Test: 15/08/2026
+- Tested commit: `5e9d478`
+- Kết quả: `15 passed`
 - OpenAI trong Unit Test: mock, không gọi provider thật
 - GitHub Actions workflow: `Backend CI`
-- CI commit: `ebd92a5`
+- CI workflow commit: `ebd92a5`; latest verified run: `5e9d478`
 - Job: `backend-quality`
 - CI result: PASS
 
@@ -36,32 +36,32 @@
 ## 3. TC-11 - Negative Test
 
 ### Login
-- LOGIN-N01: thiếu email
-- LOGIN-N02: email sai định dạng
-- LOGIN-N03: thiếu password
-- LOGIN-N04: password rỗng
-- LOGIN-N05: password > 128 ký tự
-- LOGIN-N06: gửi field ngoài schema
+- TC-AUTH-005: thiếu email
+- TC-AUTH-006: email sai định dạng
+- TC-AUTH-007: thiếu password
+- TC-AUTH-008: password rỗng
+- TC-AUTH-009: password > 128 ký tự
+- TC-AUTH-010: gửi field ngoài schema
 
 ### Requirement
-- REQ-N01: thiếu module_id
-- REQ-N02: module_id = 0
-- REQ-N03: module_id < 0
-- REQ-N04: thiếu content
-- REQ-N05: content < 20 ký tự
-- REQ-N06: content > 50000 ký tự
-- REQ-N07: acceptance_criteria > 20000 ký tự
-- REQ-N08: gửi field ngoài schema
+- TC-REQ-004: thiếu module_id
+- TC-REQ-005: module_id = 0
+- TC-REQ-006: module_id < 0
+- TC-REQ-007: thiếu content
+- TC-REQ-008: content < 20 ký tự
+- TC-REQ-009: content > 50000 ký tự
+- TC-REQ-010: acceptance_criteria > 20000 ký tự
+- TC-REQ-011: gửi field ngoài schema
 
 ### Create User
-- USER-N01: thiếu email
-- USER-N02: email sai định dạng
-- USER-N03: thiếu password
-- USER-N04: password < 10 ký tự
-- USER-N05: password > 128 ký tự
-- USER-N06: role không thuộc UserRole
-- USER-N07: email trùng
-- USER-N08: gửi field ngoài schema
+- TC-USER-004: thiếu email
+- TC-USER-005: email sai định dạng
+- TC-USER-006: thiếu password
+- TC-USER-007: password < 10 ký tự
+- TC-USER-008: password > 128 ký tự
+- TC-USER-009: role không thuộc UserRole
+- TC-USER-010: email trùng
+- TC-USER-011: gửi field ngoài schema
 
 > Các trường hợp chưa chạy manual giữ trạng thái Chưa chạy, không ghi PASS khi chưa có bằng chứng.
 

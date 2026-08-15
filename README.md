@@ -64,7 +64,6 @@ Sau khi chạy seed:
 - Password: giá trị `DEMO_USER_PASSWORD` trong `.env` (file `.env.example` chỉ chứa mật khẩu mẫu vô hại).
 
 ## Hướng dẫn chạy chi tiết và Postman
-- `docs/huong-dan/TUAN05-SETUP-POSTMAN.md`
 - `docs/kiem-thu/Tuan05_OpenAI.postman_collection.json`
 - `docs/kiem-thu/Tuan05_OpenAI.postman_environment.json`
 - `docs/kiem-thu/database_checks.sql`

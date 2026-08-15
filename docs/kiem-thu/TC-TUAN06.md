@@ -96,7 +96,7 @@
   - Job được enqueue đúng `job_id`.
   - Không chờ OpenAI hoàn thành trong HTTP request.
 - Test tự động: `test_submit_generation_creates_queued_job_and_enqueues`
-- Kết quả: PASS - 15/08/2026.
+- Kết quả: PASS - 15/08/2026, commit `5e9d478` (CI xanh).
 
 ### TC-JOB-002 - QA submit Requirement của người khác
 
@@ -108,7 +108,7 @@
   - Không tạo Generation Job.
   - Không enqueue task.
 - Test tự động: `test_submit_other_users_requirement_is_forbidden`
-- Kết quả: PASS - 15/08/2026.
+- Kết quả: PASS - 15/08/2026, commit `5e9d478` (CI xanh).
 
 ### TC-JOB-003 - QA xem Generation Job của người khác
 
@@ -119,7 +119,7 @@
   - Trả `FORBIDDEN_RECORD`.
   - Không cho đọc trạng thái job của người khác.
 - Test tự động: `test_get_other_users_job_is_forbidden`
-- Kết quả: PASS - 15/08/2026.
+- Kết quả: PASS - 15/08/2026, commit `5e9d478` (CI xanh).
 
 ### TC-JOB-004 - Queue không khả dụng
 
@@ -131,7 +131,7 @@
   - Error code là `GENERATION_QUEUE_UNAVAILABLE`.
   - Không ghi nhận generation thành công.
 - Test tự động: `test_queue_failure_marks_job_failed`
-- Kết quả: PASS - 15/08/2026.
+- Kết quả: PASS - 15/08/2026, commit `5e9d478` (CI xanh).
 
 ### Kết quả AP-08
 

@@ -22,8 +22,6 @@
 5. Frontend: `cd src/frontend && npm install && copy .env.example .env.local && npm run dev`
 6. Mở `http://localhost:3000`; Swagger ở `http://localhost:8000/docs`.
 
-> Alembic baseline + seed đã được chuẩn bị sớm để repo chạy lại được. Tuần 06 tiếp tục chấm đầy đủ nhóm DB/AP và thêm GitHub Actions CI theo Mục 21.1.
-
 ## Kiểm thử và chất lượng
 Backend, từ root repo:
 ```bash
@@ -52,7 +50,6 @@ Không commit `.env`. `.env.example` chỉ chứa giá trị mẫu vô hại (SE
 
 ## Nguồn tham khảo / AI hỗ trợ
 Skeleton ban đầu được xây dựng với sự hỗ trợ của ChatGPT (OpenAI) và được tổ chức lại theo Quy định Code ITEC4401.
-Người nộp phải tự đọc, chạy thử, chỉnh sửa và giải thích được mọi dòng code theo AI-01..AI-04.
 
 OpenAI API chỉ được dùng qua adapter riêng; model được cấu hình bằng `OPENAI_MODEL` để không hardcode nhà cung cấp/model trong nghiệp vụ.
 

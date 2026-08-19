@@ -12,6 +12,7 @@ from app.common.constants import (
     GenerationJobStatus,
 )
 from app.common.database import get_session_factory
+from app.common.exceptions import AppError
 from app.requirements.repository import RequirementRepository
 from app.testcases.job_repository import GenerationJobRepository
 from app.testcases.repository import TestCaseRepository
@@ -23,9 +24,11 @@ logger = logging.getLogger(__name__)
 
 async def _mark_failed(job_id: int, error_code: str) -> None:
     session_factory = get_session_factory()
+
     async with session_factory() as session:
         jobs = GenerationJobRepository(session)
         job = await jobs.get_by_id(job_id)
+
         if job is None:
             return
 
@@ -43,6 +46,7 @@ async def _run_generation_job(job_id: int) -> None:
     async with session_factory() as session:
         jobs = GenerationJobRepository(session)
         job = await jobs.get_by_id(job_id)
+
         if job is None:
             logger.error(
                 "Generation job not found",
@@ -50,12 +54,19 @@ async def _run_generation_job(job_id: int) -> None:
             )
             return
 
-        await jobs.set_status(job, GenerationJobStatus.RUNNING)
+        await jobs.set_status(
+            job,
+            GenerationJobStatus.RUNNING,
+        )
         await session.commit()
 
         user = await UserRepository(session).get_by_id(job.created_by)
+
         if user is None:
-            await _mark_failed(job_id, ErrorCode.UNAUTHORIZED.value)
+            await _mark_failed(
+                job_id,
+                ErrorCode.UNAUTHORIZED.value,
+            )
             return
 
         service = TestCaseGenerationService(
@@ -69,11 +80,31 @@ async def _run_generation_job(job_id: int) -> None:
         try:
             await service.generate_draft_test_cases(
                 job.requirement_id,
-                CurrentUser(id=user.id, role=user.role),
+                CurrentUser(
+                    id=user.id,
+                    role=user.role,
+                ),
             )
+
+        except AppError as exc:
+            logger.exception(
+                "Generation job failed with application error",
+                extra={
+                    "generation_job_id": job.id,
+                    "requirement_id": job.requirement_id,
+                    "user_id": job.created_by,
+                    "error_code": exc.code.value,
+                },
+            )
+            await _mark_failed(
+                job_id,
+                exc.code.value,
+            )
+            return
+
         except Exception:
             logger.exception(
-                "Generation job failed",
+                "Generation job failed unexpectedly",
                 extra={
                     "generation_job_id": job.id,
                     "requirement_id": job.requirement_id,
@@ -86,7 +117,10 @@ async def _run_generation_job(job_id: int) -> None:
             )
             return
 
-        await jobs.set_status(job, GenerationJobStatus.COMPLETED)
+        await jobs.set_status(
+            job,
+            GenerationJobStatus.COMPLETED,
+        )
         await session.commit()
 
 

@@ -15,11 +15,15 @@ def get_celery_app() -> Celery:
         broker=settings.celery_broker_url,
         include=["app.testcases.tasks"],
     )
+
     app.conf.update(
         task_serializer="json",
         accept_content=["json"],
         enable_utc=True,
         timezone="UTC",
         task_default_queue=AI_GENERATION_QUEUE,
+        control_queue_exclusive=True,
+        event_queue_exclusive=True,
     )
+
     return app

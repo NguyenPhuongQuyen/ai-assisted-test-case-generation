@@ -33,8 +33,13 @@ from app.testcases.schemas import (
     TestCaseListResponse,
     TestCaseResponse,
     TestCaseUpdateRequest,
+    TestCaseVersionCompareResponse,
+    TestCaseVersionListResponse,
+    TestCaseVersionResponse,
+    TestCaseVersionRestoreRequest,
 )
 from app.testcases.version_repository import TestCaseVersionRepository
+from app.testcases.version_service import TestCaseVersionService
 
 router = APIRouter(tags=["test-cases"])
 
@@ -47,6 +52,7 @@ PageSizeParam = Annotated[int, Query(alias="pageSize", ge=1, le=100)]
 TestCaseIdParam = Annotated[int, Path(ge=1)]
 ExportModuleParam = Annotated[int, Query(alias="module_id", ge=1)]
 ExportFormatParam = Annotated[TestCaseExportFormat, Query(alias="format")]
+VersionPathParam = Annotated[int, Path(ge=1)]
 
 
 @lru_cache
@@ -74,6 +80,15 @@ def build_query_service(session: AsyncSession) -> TestCaseQueryService:
 
 def build_review_service(session: AsyncSession) -> TestCaseReviewService:
     return TestCaseReviewService(
+        session=session,
+        test_cases=TestCaseRepository(session),
+        versions=TestCaseVersionRepository(session),
+        audits=AuditLogRepository(session),
+    )
+
+
+def build_version_service(session: AsyncSession) -> TestCaseVersionService:
+    return TestCaseVersionService(
         session=session,
         test_cases=TestCaseRepository(session),
         versions=TestCaseVersionRepository(session),
@@ -206,6 +221,58 @@ async def list_duplicate_candidates(
         embedding_model=model,
         embedding_dimensions=EMBEDDING_DIMENSIONS,
     )
+
+
+@router.get("/test-cases/{test_case_id}/versions", response_model=TestCaseVersionListResponse)
+async def list_test_case_versions(
+    test_case_id: TestCaseIdParam,
+    session: SessionDep,
+    current_user: CurrentUserDep,
+    page: PageParam = 1,
+    page_size: PageSizeParam = 20,
+) -> TestCaseVersionListResponse:
+    offset = (page - 1) * page_size
+    items, total = await build_version_service(session).list_versions(
+        test_case_id, current_user, offset=offset, limit=page_size
+    )
+    return TestCaseVersionListResponse(
+        data=[TestCaseVersionResponse.model_validate(item) for item in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get("/test-cases/{test_case_id}/versions/compare", response_model=TestCaseVersionCompareResponse)
+async def compare_test_case_versions(
+    test_case_id: TestCaseIdParam,
+    session: SessionDep,
+    current_user: CurrentUserDep,
+    from_version: Annotated[int, Query(alias="fromVersion", ge=1)],
+    to_version: Annotated[int, Query(alias="toVersion", ge=1)],
+) -> TestCaseVersionCompareResponse:
+    first, second, changes = await build_version_service(session).compare_versions(
+        test_case_id, from_version, to_version, current_user
+    )
+    return TestCaseVersionCompareResponse(
+        from_version=first.version_number,
+        to_version=second.version_number,
+        changes=changes,
+    )
+
+
+@router.post("/test-cases/{test_case_id}/versions/{version_number}/restore", response_model=TestCaseResponse)
+async def restore_test_case_version(
+    test_case_id: TestCaseIdParam,
+    version_number: VersionPathParam,
+    payload: TestCaseVersionRestoreRequest,
+    session: SessionDep,
+    current_user: CurrentUserDep,
+) -> TestCaseResponse:
+    test_case = await build_version_service(session).restore_version(
+        test_case_id, version_number, payload.lock_version, current_user
+    )
+    return TestCaseResponse.model_validate(test_case)
 
 
 @router.patch("/test-cases/{test_case_id}", response_model=TestCaseResponse)

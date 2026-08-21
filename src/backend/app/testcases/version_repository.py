@@ -25,3 +25,29 @@ class TestCaseVersionRepository:
         self._session.add(version)
         await self._session.flush()
         return version
+
+    async def list_for_test_case(self, test_case_id: int, *, offset: int, limit: int) -> list[TestCaseVersion]:
+        statement = (
+            select(TestCaseVersion)
+            .where(TestCaseVersion.test_case_id == test_case_id)
+            .order_by(TestCaseVersion.version_number.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        result = await self._session.execute(statement)
+        return list(result.scalars().all())
+
+    async def count_for_test_case(self, test_case_id: int) -> int:
+        statement = (
+            select(func.count()).select_from(TestCaseVersion).where(TestCaseVersion.test_case_id == test_case_id)
+        )
+        result = await self._session.execute(statement)
+        return int(result.scalar_one())
+
+    async def get_by_number(self, test_case_id: int, version_number: int) -> TestCaseVersion | None:
+        statement = select(TestCaseVersion).where(
+            TestCaseVersion.test_case_id == test_case_id,
+            TestCaseVersion.version_number == version_number,
+        )
+        result = await self._session.execute(statement)
+        return result.scalar_one_or_none()

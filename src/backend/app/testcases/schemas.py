@@ -108,3 +108,31 @@ class DuplicateCandidateListResponse(BaseModel):
     threshold: float = Field(ge=0.0, le=1.0)
     embedding_model: str = Field(serialization_alias="embeddingModel")
     embedding_dimensions: int = Field(serialization_alias="embeddingDimensions")
+
+
+class TestCaseVersionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    version_number: int = Field(serialization_alias="versionNumber")
+    snapshot: dict
+    created_by: int = Field(serialization_alias="createdBy")
+    created_at: datetime = Field(serialization_alias="createdAt")
+
+
+class TestCaseVersionListResponse(BaseModel):
+    data: list[TestCaseVersionResponse]
+    total: int
+    page: int
+    page_size: int = Field(serialization_alias="pageSize")
+
+
+class TestCaseVersionCompareResponse(BaseModel):
+    from_version: int = Field(serialization_alias="fromVersion")
+    to_version: int = Field(serialization_alias="toVersion")
+    changes: dict[str, dict[str, object]]
+
+
+class TestCaseVersionRestoreRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    lock_version: int = Field(ge=1)

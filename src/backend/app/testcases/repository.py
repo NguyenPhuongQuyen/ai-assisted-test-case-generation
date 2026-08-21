@@ -8,6 +8,41 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.common.constants import Priority, TestCaseStatus
 from app.testcases.models import TestCase
 
+_DUPLICATE_QUERY_ALL = """
+    WITH target AS (SELECT embedding FROM test_cases WHERE id = :test_case_id)
+    SELECT candidate.id, candidate.requirement_id, candidate.summary,
+           candidate.status::text AS status, candidate.priority::text AS priority,
+           1 - (candidate.embedding <=> target.embedding) AS similarity
+    FROM test_cases AS candidate
+    CROSS JOIN target
+    WHERE target.embedding IS NOT NULL
+      AND candidate.id <> :test_case_id
+      AND candidate.module_id = :module_id
+      AND candidate.embedding IS NOT NULL
+      AND candidate.status::text <> 'rejected'
+      AND (candidate.embedding <=> target.embedding) <= :max_distance
+    ORDER BY candidate.embedding <=> target.embedding
+    LIMIT :limit
+"""
+
+_DUPLICATE_QUERY_OWNER = """
+    WITH target AS (SELECT embedding FROM test_cases WHERE id = :test_case_id)
+    SELECT candidate.id, candidate.requirement_id, candidate.summary,
+           candidate.status::text AS status, candidate.priority::text AS priority,
+           1 - (candidate.embedding <=> target.embedding) AS similarity
+    FROM test_cases AS candidate
+    CROSS JOIN target
+    WHERE target.embedding IS NOT NULL
+      AND candidate.id <> :test_case_id
+      AND candidate.module_id = :module_id
+      AND candidate.embedding IS NOT NULL
+      AND candidate.status::text <> 'rejected'
+      AND (candidate.embedding <=> target.embedding) <= :max_distance
+      AND candidate.created_by = :owner_id
+    ORDER BY candidate.embedding <=> target.embedding
+    LIMIT :limit
+"""
+
 
 @dataclass(frozen=True, slots=True)
 class DuplicateCandidateRecord:
@@ -79,56 +114,21 @@ class TestCaseRepository:
         threshold: float,
         limit: int,
     ) -> list[DuplicateCandidateRecord]:
-        base_query = """
-                     WITH target AS (SELECT embedding \
-                                     FROM test_cases \
-                                     WHERE id = :test_case_id)
-                     SELECT candidate.id, \
-                            candidate.requirement_id, \
-                            candidate.summary, \
-                            candidate.status::text AS status,
-                            candidate.priority::text AS priority,
-                            1 - (candidate.embedding <=> target.embedding) AS similarity
-                     FROM test_cases AS candidate
-                              CROSS JOIN target
-                     WHERE target.embedding IS NOT NULL
-                       AND candidate.id <> :test_case_id
-                       AND candidate.module_id = :module_id
-                       AND candidate.embedding IS NOT NULL
-                       AND candidate.status::text <> 'rejected'
-              AND (candidate.embedding <=> target.embedding) <= :max_distance \
-                     """
-
-        if owner_id is not None:
-            statement = text(
-                base_query
-                + """
-                  AND candidate.created_by = :owner_id
-                ORDER BY candidate.embedding <=> target.embedding
-                LIMIT :limit
-                """
-            )
-        else:
-            statement = text(
-                base_query
-                + """
-                ORDER BY candidate.embedding <=> target.embedding
-                LIMIT :limit
-                """
-            )
-
+        statement = self._duplicate_statement(owner_id is not None)
         parameters = {
             "test_case_id": test_case_id,
             "module_id": module_id,
             "max_distance": 1.0 - threshold,
             "limit": limit,
         }
-
         if owner_id is not None:
             parameters["owner_id"] = owner_id
-
         result = await self._session.execute(statement, parameters)
         return [self._to_duplicate_candidate(row) for row in result.mappings().all()]
+
+    @staticmethod
+    def _duplicate_statement(filter_owner: bool):
+        return text(_DUPLICATE_QUERY_OWNER if filter_owner else _DUPLICATE_QUERY_ALL)
 
     @staticmethod
     def _to_duplicate_candidate(row) -> DuplicateCandidateRecord:  # type: ignore[no-untyped-def]
@@ -144,6 +144,18 @@ class TestCaseRepository:
     @staticmethod
     def _vector_literal(embedding: list[float]) -> str:
         return "[" + ",".join(str(float(value)) for value in embedding) + "]"
+
+    async def list_requirement_revalidation_candidates_for_update(self, requirement_id: int) -> list[TestCase]:
+        statement = (
+            select(TestCase)
+            .where(
+                TestCase.requirement_id == requirement_id,
+                TestCase.status.in_({TestCaseStatus.APPROVED, TestCaseStatus.EXPORTED}),
+            )
+            .with_for_update()
+        )
+        result = await self._session.execute(statement.order_by(TestCase.id.asc()))
+        return list(result.scalars().all())
 
     async def list_approved_for_export(
         self,

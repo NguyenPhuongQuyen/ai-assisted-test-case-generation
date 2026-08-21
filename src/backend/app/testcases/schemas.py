@@ -1,6 +1,8 @@
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.common.constants import GenerationJobStatus, Priority
+from app.common.constants import GenerationJobStatus, Priority, TestCaseStatus
 
 
 class GeneratedTestCase(BaseModel):
@@ -26,3 +28,28 @@ class GenerationJobResponse(BaseModel):
     requirement_id: int
     status: GenerationJobStatus
     error_code: str | None
+
+
+class TestCaseResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    requirement_id: int
+    module_id: int
+    summary: str
+    preconditions: list[str]
+    steps: list[str]
+    expected_result: str
+    priority: Priority
+    test_techniques: list[str]
+    review_note: str | None
+    status: TestCaseStatus
+    created_by: int
+    created_at: datetime
+
+
+class TestCaseListResponse(BaseModel):
+    data: list[TestCaseResponse]
+    total: int
+    page: int
+    page_size: int = Field(serialization_alias="pageSize")

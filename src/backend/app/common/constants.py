@@ -34,6 +34,11 @@ class Priority(StrEnum):
     LOW = "low"
 
 
+class TestCaseExportFormat(StrEnum):
+    CSV = "csv"
+    XLSX = "xlsx"
+
+
 class AuditAction(StrEnum):
     GENERATE_TEST_CASES = "generate_test_cases"
     EDIT_TEST_CASE = "edit_test_case"
@@ -41,6 +46,7 @@ class AuditAction(StrEnum):
     REQUEST_TEST_CASE_FIX = "request_test_case_fix"
     APPROVE_TEST_CASE = "approve_test_case"
     REJECT_TEST_CASE = "reject_test_case"
+    EXPORT_TEST_CASES = "export_test_cases"
 
 
 class ErrorCode(StrEnum):

@@ -3,7 +3,7 @@
 from functools import lru_cache
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path, Query, status
+from fastapi import APIRouter, Depends, Path, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit.repository import AuditLogRepository
@@ -11,12 +11,14 @@ from app.auth.dependencies import get_current_user
 from app.auth.schemas import CurrentUser
 from app.common.ai.embedding_adapter import OpenAIEmbeddingAdapter
 from app.common.config import get_settings
-from app.common.constants import EMBEDDING_DIMENSIONS, TestCaseStatus
+from app.common.constants import EMBEDDING_DIMENSIONS, TestCaseExportFormat, TestCaseStatus
 from app.common.database import get_session
 from app.common.rate_limit import SlidingWindowRateLimiter
 from app.common.task_queue import GenerationTaskQueue
+from app.modules.repository import ModuleRepository
 from app.requirements.repository import RequirementRepository
 from app.testcases.duplicate_service import DuplicateDetectionService
+from app.testcases.export_service import TestCaseExportService
 from app.testcases.job_repository import GenerationJobRepository
 from app.testcases.job_service import GenerationJobService
 from app.testcases.query_service import TestCaseQueryService
@@ -43,6 +45,8 @@ StatusFilter = Annotated[TestCaseStatus | None, Query(alias="status")]
 PageParam = Annotated[int, Query(ge=1)]
 PageSizeParam = Annotated[int, Query(alias="pageSize", ge=1, le=100)]
 TestCaseIdParam = Annotated[int, Path(ge=1)]
+ExportModuleParam = Annotated[int, Query(alias="module_id", ge=1)]
+ExportFormatParam = Annotated[TestCaseExportFormat, Query(alias="format")]
 
 
 @lru_cache
@@ -73,6 +77,15 @@ def build_review_service(session: AsyncSession) -> TestCaseReviewService:
         session=session,
         test_cases=TestCaseRepository(session),
         versions=TestCaseVersionRepository(session),
+        audits=AuditLogRepository(session),
+    )
+
+
+def build_export_service(session: AsyncSession) -> TestCaseExportService:
+    return TestCaseExportService(
+        session=session,
+        test_cases=TestCaseRepository(session),
+        modules=ModuleRepository(session),
         audits=AuditLogRepository(session),
     )
 
@@ -141,6 +154,25 @@ async def list_test_cases(
         limit=page_size,
     )
     return TestCaseListResponse(data=items, total=total, page=page, page_size=page_size)
+
+
+@router.get("/test-cases/export")
+async def export_test_cases(
+    session: SessionDep,
+    current_user: CurrentUserDep,
+    module_id: ExportModuleParam,
+    export_format: ExportFormatParam = TestCaseExportFormat.CSV,
+) -> Response:
+    exported_file = await build_export_service(session).export_approved_test_cases(
+        module_id,
+        export_format,
+        current_user,
+    )
+    return Response(
+        content=exported_file.content,
+        media_type=exported_file.media_type,
+        headers={"Content-Disposition": f'attachment; filename="{exported_file.filename}"'},
+    )
 
 
 @router.get("/test-cases/{test_case_id}", response_model=TestCaseResponse)

@@ -145,6 +145,21 @@ class TestCaseRepository:
     def _vector_literal(embedding: list[float]) -> str:
         return "[" + ",".join(str(float(value)) for value in embedding) + "]"
 
+    async def list_approved_for_export(
+        self,
+        *,
+        module_id: int,
+        owner_id: int | None,
+    ) -> list[TestCase]:
+        statement = select(TestCase).where(
+            TestCase.module_id == module_id,
+            TestCase.status == TestCaseStatus.APPROVED,
+        )
+        if owner_id is not None:
+            statement = statement.where(TestCase.created_by == owner_id)
+        result = await self._session.execute(statement.order_by(TestCase.id.asc()))
+        return list(result.scalars().all())
+
     async def list_accessible(
         self,
         *,

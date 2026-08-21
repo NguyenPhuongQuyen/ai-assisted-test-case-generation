@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from app.auth.schemas import CurrentUser
+from app.common.ai.embedding_adapter import EmbeddingBatchResult
 from app.common.ai.openai_adapter import AIUsage, GeneratedBatchResult
 from app.common.constants import ErrorCode, Priority, UserRole
 from app.common.constants import TestCaseStatus as CaseStatus
@@ -14,7 +15,10 @@ from app.testcases.service import TestCaseGenerationService as GenerationService
 def build_service(*, requirement: object | None, ai_result: object) -> tuple[GenerationService, object]:
     session = AsyncMock()
     requirements = SimpleNamespace(get_by_id=AsyncMock(return_value=requirement))
-    test_cases = SimpleNamespace(create_many=AsyncMock(side_effect=lambda rows: rows))
+    test_cases = SimpleNamespace(
+        create_many=AsyncMock(side_effect=lambda rows: rows),
+        set_embeddings=AsyncMock(),
+    )
     versions = SimpleNamespace(create_snapshot=AsyncMock())
     audits = SimpleNamespace(create=AsyncMock())
     ai_adapter = SimpleNamespace(
@@ -22,7 +26,10 @@ def build_service(*, requirement: object | None, ai_result: object) -> tuple[Gen
     )
     if not isinstance(ai_result, Exception):
         ai_adapter.generate_test_cases.return_value = ai_result
-    service = GenerationService(session, requirements, test_cases, versions, audits, ai_adapter)
+    embedding_adapter = SimpleNamespace(
+        embed_texts=AsyncMock(return_value=EmbeddingBatchResult(vectors=[[0.1] * 1536], input_tokens=12))
+    )
+    service = GenerationService(session, requirements, test_cases, versions, audits, ai_adapter, embedding_adapter)
     collaborators = SimpleNamespace(
         session=session,
         requirements=requirements,
@@ -30,6 +37,7 @@ def build_service(*, requirement: object | None, ai_result: object) -> tuple[Gen
         versions=versions,
         audits=audits,
         ai_adapter=ai_adapter,
+        embedding_adapter=embedding_adapter,
     )
     return service, collaborators
 
@@ -72,6 +80,8 @@ async def test_valid_ai_output_is_persisted_as_draft() -> None:
     assert result[0].priority in {Priority.HIGH, Priority.MEDIUM, Priority.LOW}
     assert len(result[0].steps) >= 1
     deps.test_cases.create_many.assert_awaited_once()
+    deps.embedding_adapter.embed_texts.assert_awaited_once()
+    deps.test_cases.set_embeddings.assert_awaited_once()
     deps.versions.create_snapshot.assert_awaited_once()
     deps.audits.create.assert_awaited_once()
     deps.session.commit.assert_awaited_once()

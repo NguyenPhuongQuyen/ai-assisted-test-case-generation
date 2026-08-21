@@ -1,7 +1,9 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.common.constants import EMBEDDING_DIMENSIONS
 
 
 class Settings(BaseSettings):
@@ -17,6 +19,9 @@ class Settings(BaseSettings):
     openai_api_key: str = Field(min_length=1)
     openai_model: str = "gpt-5"
     openai_max_output_tokens: int = Field(default=4000, ge=256, le=16000)
+    openai_embedding_model: str = "text-embedding-3-small"
+    openai_embedding_dimensions: int = Field(default=EMBEDDING_DIMENSIONS, ge=1)
+    duplicate_similarity_threshold: float = Field(default=0.85, ge=0.0, le=1.0)
     ai_rate_limit_max_requests: int = Field(default=10, ge=1, le=100)
     ai_rate_limit_window_seconds: int = Field(default=300, ge=60, le=3600)
 
@@ -25,6 +30,13 @@ class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:3000"
     log_level: str = "INFO"
     demo_user_password: str = Field(default="Demo_Change_Me_123!", min_length=10)
+
+    @model_validator(mode="after")
+    def validate_embedding_dimensions(self) -> "Settings":
+        # DB-12: the configured embedding dimension must match the fixed pgvector column dimension.
+        if self.openai_embedding_dimensions != EMBEDDING_DIMENSIONS:
+            raise ValueError(f"OPENAI_EMBEDDING_DIMENSIONS must be {EMBEDDING_DIMENSIONS}")
+        return self
 
 
 @lru_cache

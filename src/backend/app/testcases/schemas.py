@@ -91,3 +91,19 @@ class ReviewDecisionRequest(ReviewTransitionRequest):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     review_note: str | None = Field(default=None, max_length=1000)
+
+
+class DuplicateCandidateResponse(BaseModel):
+    id: int
+    requirement_id: int
+    summary: str
+    status: TestCaseStatus
+    priority: Priority
+    similarity: float = Field(ge=0.0, le=1.0)
+
+
+class DuplicateCandidateListResponse(BaseModel):
+    data: list[DuplicateCandidateResponse]
+    threshold: float = Field(ge=0.0, le=1.0)
+    embedding_model: str = Field(serialization_alias="embeddingModel")
+    embedding_dimensions: int = Field(serialization_alias="embeddingDimensions")

@@ -36,6 +36,7 @@ def build_service(record):
     test_cases = SimpleNamespace(
         get_by_id_for_update=AsyncMock(return_value=record),
         save=AsyncMock(side_effect=lambda item: item),
+        clear_embedding=AsyncMock(),
     )
     versions = SimpleNamespace(create_snapshot=AsyncMock())
     audits = SimpleNamespace(create=AsyncMock())
@@ -46,13 +47,14 @@ def build_service(record):
 @pytest.mark.asyncio
 async def test_owner_can_edit_draft_and_records_version_and_audit() -> None:
     case = make_case()
-    service, session, _, versions, audits = build_service(case)
+    service, session, test_cases, versions, audits = build_service(case)
     payload = UpdateRequest(lock_version=2, summary="Updated cart test case")
 
     result = await service.update_test_case(10, payload, CurrentUser(id=7, role=UserRole.QA))
 
     assert result.summary == "Updated cart test case"
     assert result.lock_version == 3
+    test_cases.clear_embedding.assert_awaited_once_with(10)
     versions.create_snapshot.assert_awaited_once()
     audit = audits.create.await_args.args[0]
     assert audit.action == AuditAction.EDIT_TEST_CASE

@@ -5,6 +5,7 @@ from celery import shared_task
 
 from app.audit.repository import AuditLogRepository
 from app.auth.schemas import CurrentUser
+from app.common.ai.embedding_adapter import OpenAIEmbeddingAdapter
 from app.common.ai.openai_adapter import OpenAIAdapter
 from app.common.constants import (
     GENERATION_TASK_NAME,
@@ -77,6 +78,7 @@ async def _run_generation_job(job_id: int) -> None:
             versions=TestCaseVersionRepository(session),
             audits=AuditLogRepository(session),
             ai_adapter=OpenAIAdapter(),
+            embedding_adapter=OpenAIEmbeddingAdapter(),
         )
 
         try:

@@ -3,6 +3,7 @@ from enum import StrEnum
 AUTH_SCHEME_BEARER = "bearer"
 AI_GENERATION_QUEUE = "ai-generation"
 GENERATION_TASK_NAME = "testcases.generate"
+EMBEDDING_DIMENSIONS = 1536
 
 
 class UserRole(StrEnum):

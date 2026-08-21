@@ -60,6 +60,8 @@ class TestCaseReviewService:
         for field_name, value in changes.items():
             setattr(test_case, field_name, value)
         self._validate_required_fields(test_case)
+        # NC-05: content edits invalidate the derived semantic vector and force a fresh embedding on next check.
+        await self._test_cases.clear_embedding(test_case.id)
         await self._save_new_version(test_case)
         after = build_test_case_snapshot(test_case)
 

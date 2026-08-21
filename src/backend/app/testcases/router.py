@@ -9,18 +9,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.audit.repository import AuditLogRepository
 from app.auth.dependencies import get_current_user
 from app.auth.schemas import CurrentUser
+from app.common.ai.embedding_adapter import OpenAIEmbeddingAdapter
 from app.common.config import get_settings
-from app.common.constants import TestCaseStatus
+from app.common.constants import EMBEDDING_DIMENSIONS, TestCaseStatus
 from app.common.database import get_session
 from app.common.rate_limit import SlidingWindowRateLimiter
 from app.common.task_queue import GenerationTaskQueue
 from app.requirements.repository import RequirementRepository
+from app.testcases.duplicate_service import DuplicateDetectionService
 from app.testcases.job_repository import GenerationJobRepository
 from app.testcases.job_service import GenerationJobService
 from app.testcases.query_service import TestCaseQueryService
 from app.testcases.repository import TestCaseRepository
 from app.testcases.review_service import TestCaseReviewService
 from app.testcases.schemas import (
+    DuplicateCandidateListResponse,
+    DuplicateCandidateResponse,
     GenerationJobResponse,
     ReviewDecisionRequest,
     ReviewTransitionRequest,
@@ -70,6 +74,16 @@ def build_review_service(session: AsyncSession) -> TestCaseReviewService:
         test_cases=TestCaseRepository(session),
         versions=TestCaseVersionRepository(session),
         audits=AuditLogRepository(session),
+    )
+
+
+def build_duplicate_service(session: AsyncSession) -> DuplicateDetectionService:
+    repository = TestCaseRepository(session)
+    return DuplicateDetectionService(
+        session=session,
+        test_cases=repository,
+        query_service=TestCaseQueryService(repository),
+        embedding_adapter=OpenAIEmbeddingAdapter(),
     )
 
 
@@ -137,6 +151,29 @@ async def get_test_case(
 ) -> TestCaseResponse:
     test_case = await build_query_service(session).get_test_case(test_case_id, current_user)
     return TestCaseResponse.model_validate(test_case)
+
+
+@router.get(
+    "/test-cases/{test_case_id}/duplicate-candidates",
+    response_model=DuplicateCandidateListResponse,
+)
+async def list_duplicate_candidates(
+    test_case_id: TestCaseIdParam,
+    session: SessionDep,
+    current_user: CurrentUserDep,
+    limit: Annotated[int, Query(ge=1, le=20)] = 5,
+) -> DuplicateCandidateListResponse:
+    candidates, threshold, model = await build_duplicate_service(session).find_candidates(
+        test_case_id,
+        current_user,
+        limit=limit,
+    )
+    return DuplicateCandidateListResponse(
+        data=[DuplicateCandidateResponse.model_validate(candidate, from_attributes=True) for candidate in candidates],
+        threshold=threshold,
+        embedding_model=model,
+        embedding_dimensions=EMBEDDING_DIMENSIONS,
+    )
 
 
 @router.patch("/test-cases/{test_case_id}", response_model=TestCaseResponse)

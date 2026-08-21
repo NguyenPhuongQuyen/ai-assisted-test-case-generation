@@ -46,6 +46,7 @@ class TestCaseResponse(BaseModel):
     expected_result: str
     priority: Priority
     test_techniques: list[str]
+    tags: list[str]
     review_note: str | None
     status: TestCaseStatus
     lock_version: int

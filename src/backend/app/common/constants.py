@@ -47,6 +47,9 @@ class AuditAction(StrEnum):
     APPROVE_TEST_CASE = "approve_test_case"
     REJECT_TEST_CASE = "reject_test_case"
     EXPORT_TEST_CASES = "export_test_cases"
+    CREATE_MODULE = "create_module"
+    UPDATE_MODULE = "update_module"
+    TAG_TEST_CASE = "tag_test_case"
 
 
 class ErrorCode(StrEnum):

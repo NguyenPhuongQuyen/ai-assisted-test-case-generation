@@ -11,6 +11,7 @@ def build_test_case_snapshot(test_case: TestCase) -> dict:
         "expected_result": test_case.expected_result,
         "priority": test_case.priority.value,
         "test_techniques": list(test_case.test_techniques or []),
+        "tags": list(test_case.tags or []),
         "review_note": test_case.review_note,
         "status": test_case.status.value,
         "lock_version": test_case.lock_version,

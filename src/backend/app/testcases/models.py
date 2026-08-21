@@ -24,6 +24,7 @@ class TestCase(Base):
     expected_result: Mapped[str] = mapped_column(Text)
     priority: Mapped[Priority] = mapped_column(Enum(Priority, values_callable=_enum_values, name="test_case_priority"))
     test_techniques: Mapped[list[str]] = mapped_column(JSON, default=list)
+    tags: Mapped[list[str]] = mapped_column(JSON, default=list)
     review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[TestCaseStatus] = mapped_column(
         Enum(TestCaseStatus, values_callable=_enum_values, name="test_case_status"),

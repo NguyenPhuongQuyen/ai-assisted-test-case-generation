@@ -24,6 +24,7 @@ def make_case(*, status=CaseStatus.DRAFT, created_by=7, lock_version=2):
         expected_result="Product is added",
         priority=Priority.HIGH,
         test_techniques=["equivalence_partitioning"],
+        tags=[],
         review_note=None,
         status=status,
         lock_version=lock_version,

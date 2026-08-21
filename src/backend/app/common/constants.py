@@ -35,6 +35,11 @@ class Priority(StrEnum):
 
 class AuditAction(StrEnum):
     GENERATE_TEST_CASES = "generate_test_cases"
+    EDIT_TEST_CASE = "edit_test_case"
+    SUBMIT_TEST_CASE_REVIEW = "submit_test_case_review"
+    REQUEST_TEST_CASE_FIX = "request_test_case_fix"
+    APPROVE_TEST_CASE = "approve_test_case"
+    REJECT_TEST_CASE = "reject_test_case"
 
 
 class ErrorCode(StrEnum):

@@ -8,6 +8,7 @@ from app.common.database import Base
 from app.modules import models as module_models  # noqa: F401
 from app.requirements import models as requirement_models  # noqa: F401
 from app.testcases import models as testcase_models  # noqa: F401
+from app.testcases import version_models as testcase_version_models  # noqa: F401
 from app.users import models as user_models  # noqa: F401
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config

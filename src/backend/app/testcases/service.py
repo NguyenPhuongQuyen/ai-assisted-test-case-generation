@@ -11,6 +11,8 @@ from app.common.exceptions import AppError
 from app.requirements.repository import RequirementRepository
 from app.testcases.models import TestCase
 from app.testcases.repository import TestCaseRepository
+from app.testcases.snapshot import build_test_case_snapshot
+from app.testcases.version_repository import TestCaseVersionRepository
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +23,14 @@ class TestCaseGenerationService:
         session: AsyncSession,
         requirements: RequirementRepository,
         test_cases: TestCaseRepository,
+        versions: TestCaseVersionRepository,
         audits: AuditLogRepository,
         ai_adapter: OpenAIAdapter,
     ) -> None:
         self._session = session
         self._requirements = requirements
         self._test_cases = test_cases
+        self._versions = versions
         self._audits = audits
         self._ai = ai_adapter
 
@@ -56,11 +60,20 @@ class TestCaseGenerationService:
                 test_techniques=item.test_techniques,
                 review_note=item.review_note,
                 status=TestCaseStatus.DRAFT,  # BR-01: AI output cannot skip human review/approval.
+                lock_version=1,
                 created_by=current_user.id,
             )
             for item in generated.data.test_cases
         ]
         await self._test_cases.create_many(test_cases)
+
+        # BR-06: the AI-produced DRAFT is version 1 before any human edit occurs.
+        for test_case in test_cases:
+            await self._versions.create_snapshot(
+                test_case_id=test_case.id,
+                snapshot=build_test_case_snapshot(test_case),
+                created_by=current_user.id,
+            )
 
         # BR-06 / NC-11: every generation action is appended to the audit trail in the same transaction.
         await self._audits.create(

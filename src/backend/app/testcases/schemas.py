@@ -1,8 +1,12 @@
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.common.constants import GenerationJobStatus, Priority, TestCaseStatus
+
+ShortText = Annotated[str, Field(min_length=1, max_length=500)]
+TechniqueText = Annotated[str, Field(min_length=1, max_length=100)]
 
 
 class GeneratedTestCase(BaseModel):
@@ -44,6 +48,7 @@ class TestCaseResponse(BaseModel):
     test_techniques: list[str]
     review_note: str | None
     status: TestCaseStatus
+    lock_version: int
     created_by: int
     created_at: datetime
 
@@ -53,3 +58,36 @@ class TestCaseListResponse(BaseModel):
     total: int
     page: int
     page_size: int = Field(serialization_alias="pageSize")
+
+
+class TestCaseUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    lock_version: int = Field(ge=1)
+    summary: str | None = Field(default=None, min_length=3, max_length=300)
+    preconditions: list[ShortText] | None = Field(default=None, max_length=20)
+    steps: list[ShortText] | None = Field(default=None, min_length=1, max_length=30)
+    expected_result: str | None = Field(default=None, min_length=3, max_length=1000)
+    priority: Priority | None = None
+    test_techniques: list[TechniqueText] | None = Field(default=None, max_length=10)
+    review_note: str | None = Field(default=None, max_length=1000)
+
+    @model_validator(mode="after")
+    def reject_null_for_non_nullable_fields(self) -> "TestCaseUpdateRequest":
+        nullable_fields = {"review_note"}
+        for field_name in self.model_fields_set - nullable_fields:
+            if field_name != "lock_version" and getattr(self, field_name) is None:
+                raise ValueError(f"{field_name} cannot be null")
+        return self
+
+
+class ReviewTransitionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    lock_version: int = Field(ge=1)
+
+
+class ReviewDecisionRequest(ReviewTransitionRequest):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    review_note: str | None = Field(default=None, max_length=1000)

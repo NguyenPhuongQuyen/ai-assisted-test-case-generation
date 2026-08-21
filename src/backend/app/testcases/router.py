@@ -1,9 +1,12 @@
+# Source assistance: OpenAI ChatGPT, 2026-08-21 (AI-05).
+
 from functools import lru_cache
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.audit.repository import AuditLogRepository
 from app.auth.dependencies import get_current_user
 from app.auth.schemas import CurrentUser
 from app.common.config import get_settings
@@ -16,7 +19,16 @@ from app.testcases.job_repository import GenerationJobRepository
 from app.testcases.job_service import GenerationJobService
 from app.testcases.query_service import TestCaseQueryService
 from app.testcases.repository import TestCaseRepository
-from app.testcases.schemas import GenerationJobResponse, TestCaseListResponse, TestCaseResponse
+from app.testcases.review_service import TestCaseReviewService
+from app.testcases.schemas import (
+    GenerationJobResponse,
+    ReviewDecisionRequest,
+    ReviewTransitionRequest,
+    TestCaseListResponse,
+    TestCaseResponse,
+    TestCaseUpdateRequest,
+)
+from app.testcases.version_repository import TestCaseVersionRepository
 
 router = APIRouter(tags=["test-cases"])
 
@@ -50,6 +62,15 @@ def build_job_service(session: AsyncSession) -> GenerationJobService:
 
 def build_query_service(session: AsyncSession) -> TestCaseQueryService:
     return TestCaseQueryService(TestCaseRepository(session))
+
+
+def build_review_service(session: AsyncSession) -> TestCaseReviewService:
+    return TestCaseReviewService(
+        session=session,
+        test_cases=TestCaseRepository(session),
+        versions=TestCaseVersionRepository(session),
+        audits=AuditLogRepository(session),
+    )
 
 
 def to_job_response(job) -> GenerationJobResponse:
@@ -115,4 +136,59 @@ async def get_test_case(
     current_user: CurrentUserDep,
 ) -> TestCaseResponse:
     test_case = await build_query_service(session).get_test_case(test_case_id, current_user)
+    return TestCaseResponse.model_validate(test_case)
+
+
+@router.patch("/test-cases/{test_case_id}", response_model=TestCaseResponse)
+async def update_test_case(
+    test_case_id: TestCaseIdParam,
+    payload: TestCaseUpdateRequest,
+    session: SessionDep,
+    current_user: CurrentUserDep,
+) -> TestCaseResponse:
+    test_case = await build_review_service(session).update_test_case(test_case_id, payload, current_user)
+    return TestCaseResponse.model_validate(test_case)
+
+
+@router.post("/test-cases/{test_case_id}/review", response_model=TestCaseResponse)
+async def submit_test_case_review(
+    test_case_id: TestCaseIdParam,
+    payload: ReviewTransitionRequest,
+    session: SessionDep,
+    current_user: CurrentUserDep,
+) -> TestCaseResponse:
+    test_case = await build_review_service(session).submit_for_review(test_case_id, payload.lock_version, current_user)
+    return TestCaseResponse.model_validate(test_case)
+
+
+@router.post("/test-cases/{test_case_id}/approve", response_model=TestCaseResponse)
+async def approve_test_case(
+    test_case_id: TestCaseIdParam,
+    payload: ReviewDecisionRequest,
+    session: SessionDep,
+    current_user: CurrentUserDep,
+) -> TestCaseResponse:
+    test_case = await build_review_service(session).approve(test_case_id, payload, current_user)
+    return TestCaseResponse.model_validate(test_case)
+
+
+@router.post("/test-cases/{test_case_id}/request-fix", response_model=TestCaseResponse)
+async def request_test_case_fix(
+    test_case_id: TestCaseIdParam,
+    payload: ReviewDecisionRequest,
+    session: SessionDep,
+    current_user: CurrentUserDep,
+) -> TestCaseResponse:
+    test_case = await build_review_service(session).request_fix(test_case_id, payload, current_user)
+    return TestCaseResponse.model_validate(test_case)
+
+
+@router.post("/test-cases/{test_case_id}/reject", response_model=TestCaseResponse)
+async def reject_test_case(
+    test_case_id: TestCaseIdParam,
+    payload: ReviewDecisionRequest,
+    session: SessionDep,
+    current_user: CurrentUserDep,
+) -> TestCaseResponse:
+    test_case = await build_review_service(session).reject(test_case_id, payload, current_user)
     return TestCaseResponse.model_validate(test_case)

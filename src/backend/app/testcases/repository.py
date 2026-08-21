@@ -20,6 +20,16 @@ class TestCaseRepository:
         result = await self._session.execute(select(TestCase).where(TestCase.id == test_case_id))
         return result.scalar_one_or_none()
 
+    async def get_by_id_for_update(self, test_case_id: int) -> TestCase | None:
+        statement = select(TestCase).where(TestCase.id == test_case_id).with_for_update()
+        result = await self._session.execute(statement)
+        return result.scalar_one_or_none()
+
+    async def save(self, test_case: TestCase) -> TestCase:
+        self._session.add(test_case)
+        await self._session.flush()
+        return test_case
+
     async def list_accessible(
         self,
         *,

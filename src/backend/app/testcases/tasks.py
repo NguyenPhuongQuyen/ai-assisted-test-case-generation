@@ -17,6 +17,7 @@ from app.requirements.repository import RequirementRepository
 from app.testcases.job_repository import GenerationJobRepository
 from app.testcases.repository import TestCaseRepository
 from app.testcases.service import TestCaseGenerationService
+from app.testcases.version_repository import TestCaseVersionRepository
 from app.users.repository import UserRepository
 
 logger = logging.getLogger(__name__)
@@ -73,6 +74,7 @@ async def _run_generation_job(job_id: int) -> None:
             session=session,
             requirements=RequirementRepository(session),
             test_cases=TestCaseRepository(session),
+            versions=TestCaseVersionRepository(session),
             audits=AuditLogRepository(session),
             ai_adapter=OpenAIAdapter(),
         )

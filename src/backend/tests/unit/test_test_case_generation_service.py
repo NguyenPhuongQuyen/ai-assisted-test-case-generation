@@ -15,17 +15,19 @@ def build_service(*, requirement: object | None, ai_result: object) -> tuple[Gen
     session = AsyncMock()
     requirements = SimpleNamespace(get_by_id=AsyncMock(return_value=requirement))
     test_cases = SimpleNamespace(create_many=AsyncMock(side_effect=lambda rows: rows))
+    versions = SimpleNamespace(create_snapshot=AsyncMock())
     audits = SimpleNamespace(create=AsyncMock())
     ai_adapter = SimpleNamespace(
         generate_test_cases=AsyncMock(side_effect=ai_result if isinstance(ai_result, Exception) else None)
     )
     if not isinstance(ai_result, Exception):
         ai_adapter.generate_test_cases.return_value = ai_result
-    service = GenerationService(session, requirements, test_cases, audits, ai_adapter)
+    service = GenerationService(session, requirements, test_cases, versions, audits, ai_adapter)
     collaborators = SimpleNamespace(
         session=session,
         requirements=requirements,
         test_cases=test_cases,
+        versions=versions,
         audits=audits,
         ai_adapter=ai_adapter,
     )
@@ -70,6 +72,7 @@ async def test_valid_ai_output_is_persisted_as_draft() -> None:
     assert result[0].priority in {Priority.HIGH, Priority.MEDIUM, Priority.LOW}
     assert len(result[0].steps) >= 1
     deps.test_cases.create_many.assert_awaited_once()
+    deps.versions.create_snapshot.assert_awaited_once()
     deps.audits.create.assert_awaited_once()
     deps.session.commit.assert_awaited_once()
 
@@ -96,6 +99,7 @@ async def test_qa_cannot_generate_from_another_users_requirement() -> None:
     assert exc_info.value.status_code == 403
     deps.ai_adapter.generate_test_cases.assert_not_awaited()
     deps.test_cases.create_many.assert_not_awaited()
+    deps.versions.create_snapshot.assert_not_awaited()
     deps.session.commit.assert_not_awaited()
 
 
@@ -120,6 +124,7 @@ async def test_invalid_ai_output_is_not_persisted() -> None:
     # Assert
     assert exc_info.value.code == ErrorCode.AI_OUTPUT_INVALID
     deps.test_cases.create_many.assert_not_awaited()
+    deps.versions.create_snapshot.assert_not_awaited()
     deps.audits.create.assert_not_awaited()
     deps.session.commit.assert_not_awaited()
 

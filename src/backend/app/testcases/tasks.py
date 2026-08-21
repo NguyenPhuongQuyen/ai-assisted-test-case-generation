@@ -14,6 +14,7 @@ from app.common.constants import (
 )
 from app.common.database import get_session_factory
 from app.common.exceptions import AppError
+from app.prompt_configs.repository import PromptConfigRepository
 from app.requirements.repository import RequirementRepository
 from app.testcases.job_repository import GenerationJobRepository
 from app.testcases.repository import TestCaseRepository
@@ -77,6 +78,7 @@ async def _run_generation_job(job_id: int) -> None:
             test_cases=TestCaseRepository(session),
             versions=TestCaseVersionRepository(session),
             audits=AuditLogRepository(session),
+            prompts=PromptConfigRepository(session),
             ai_adapter=OpenAIAdapter(),
             embedding_adapter=OpenAIEmbeddingAdapter(),
         )

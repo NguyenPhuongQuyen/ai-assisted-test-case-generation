@@ -24,41 +24,43 @@ class GeneratedBatchResult:
     usage: AIUsage
 
 
+@dataclass(frozen=True, slots=True)
+class PromptRuntimeConfig:
+    version_number: int
+    model_name: str
+    schema_version: str
+    system_prompt: str
+    user_prompt_template: str
+    max_output_tokens: int
+
+
 class OpenAIAdapter:
     """Single external integration boundary for OpenAI API (AR-11)."""
 
     def __init__(self, client: AsyncOpenAI | None = None) -> None:
         settings = get_settings()
         self._client = client or AsyncOpenAI(api_key=settings.openai_api_key)
-        self._model = settings.openai_model
-        self._max_output_tokens = settings.openai_max_output_tokens
 
     async def generate_test_cases(
         self,
         requirement_text: str,
         acceptance_criteria: str | None,
+        prompt_config: PromptRuntimeConfig,
     ) -> GeneratedBatchResult:
-        """Generate Pydantic-validated Structured Output without exposing raw free-form model output."""
-        prompt = (
-            "Sinh test case từ requirement sau. Bao phủ happy path, negative scenarios, BVA/EP khi phù hợp. "
-            "Không bịa quy tắc không có trong requirement; mọi giả định phải ghi vào review_note.\n\n"
-            f"Requirement:\n{requirement_text}\n\nAcceptance Criteria:\n{acceptance_criteria or '(không có)'}"
+        """Generate Pydantic-validated Structured Output using the active persisted prompt configuration."""
+        user_prompt = prompt_config.user_prompt_template.format(
+            requirement_text=requirement_text,
+            acceptance_criteria=acceptance_criteria or "(không có)",
         )
         try:
             response = await self._client.responses.parse(
-                model=self._model,
+                model=prompt_config.model_name,
                 input=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "Bạn là Senior QA Engineer. Tạo test case có cấu trúc để con người rà soát. "
-                            "Đầu ra AI luôn là bản nháp và không tự phê duyệt."
-                        ),
-                    },
-                    {"role": "user", "content": prompt},
+                    {"role": "system", "content": prompt_config.system_prompt},
+                    {"role": "user", "content": user_prompt},
                 ],
                 text_format=GeneratedTestCaseBatch,
-                max_output_tokens=self._max_output_tokens,
+                max_output_tokens=prompt_config.max_output_tokens,
             )
         except ValidationError as exc:
             logger.warning("OpenAI output failed schema validation", extra={"operation": "generate_test_cases"})

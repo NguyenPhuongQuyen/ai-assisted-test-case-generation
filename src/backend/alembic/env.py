@@ -6,6 +6,7 @@ from app.audit import models as audit_models  # noqa: F401
 from app.common.config import get_settings
 from app.common.database import Base
 from app.modules import models as module_models  # noqa: F401
+from app.prompt_configs import models as prompt_config_models  # noqa: F401
 from app.requirements import models as requirement_models  # noqa: F401
 from app.testcases import models as testcase_models  # noqa: F401
 from app.testcases import version_models as testcase_version_models  # noqa: F401

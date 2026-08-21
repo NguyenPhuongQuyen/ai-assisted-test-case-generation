@@ -8,9 +8,11 @@ from app.audit.models import AuditLog
 from app.audit.repository import AuditLogRepository
 from app.auth.schemas import CurrentUser
 from app.common.ai.embedding_adapter import OpenAIEmbeddingAdapter
-from app.common.ai.openai_adapter import OpenAIAdapter
+from app.common.ai.openai_adapter import OpenAIAdapter, PromptRuntimeConfig
 from app.common.constants import AuditAction, ErrorCode, TestCaseStatus, UserRole
 from app.common.exceptions import AppError
+from app.prompt_configs.models import PromptConfig
+from app.prompt_configs.repository import PromptConfigRepository
 from app.requirements.repository import RequirementRepository
 from app.testcases.models import TestCase
 from app.testcases.repository import TestCaseRepository
@@ -29,6 +31,7 @@ class TestCaseGenerationService:
         test_cases: TestCaseRepository,
         versions: TestCaseVersionRepository,
         audits: AuditLogRepository,
+        prompts: PromptConfigRepository,
         ai_adapter: OpenAIAdapter,
         embedding_adapter: OpenAIEmbeddingAdapter,
     ) -> None:
@@ -37,25 +40,49 @@ class TestCaseGenerationService:
         self._test_cases = test_cases
         self._versions = versions
         self._audits = audits
+        self._prompts = prompts
         self._ai = ai_adapter
         self._embeddings = embedding_adapter
 
     async def generate_draft_test_cases(self, requirement_id: int, current_user: CurrentUser) -> list[TestCase]:
-        """Generate validated DRAFT test cases, versions, audit evidence, and semantic vectors."""
+        """Generate validated DRAFT test cases using the active prompt version and persist traceability evidence."""
         requirement = await self._requirements.get_by_id(requirement_id)
         if requirement is None:
             raise AppError(ErrorCode.REQUIREMENT_NOT_FOUND, "Không tìm thấy yêu cầu.", 404)
         self._require_requirement_access(requirement.created_by, current_user)
-
-        generated = await self._ai.generate_test_cases(requirement.content, requirement.acceptance_criteria)
+        prompt_config = await self._require_active_prompt()
+        runtime_config = self._build_runtime_config(prompt_config)
+        generated = await self._ai.generate_test_cases(
+            requirement.content,
+            requirement.acceptance_criteria,
+            runtime_config,
+        )
         test_cases = self._build_drafts(requirement, generated.data.test_cases, current_user.id)
         await self._test_cases.create_many(test_cases)
         embedding_tokens = await self._store_embeddings(test_cases)
         await self._store_versions(test_cases, current_user.id)
-        await self._audit_generation(requirement.id, len(test_cases), current_user.id)
+        await self._audit_generation(requirement.id, len(test_cases), current_user.id, prompt_config)
         await self._session.commit()
         self._log_generation(requirement.id, current_user.id, len(test_cases), generated.usage, embedding_tokens)
         return test_cases
+
+    async def _require_active_prompt(self) -> PromptConfig:
+        # NC-09 / UC06: generation always uses the currently active persisted prompt/model configuration.
+        prompt_config = await self._prompts.get_active()
+        if prompt_config is None:
+            raise AppError(ErrorCode.PROMPT_CONFIG_NOT_FOUND, "Không có cấu hình prompt đang hoạt động.", 409)
+        return prompt_config
+
+    @staticmethod
+    def _build_runtime_config(config: PromptConfig) -> PromptRuntimeConfig:
+        return PromptRuntimeConfig(
+            version_number=config.version_number,
+            model_name=config.model_name,
+            schema_version=config.schema_version,
+            system_prompt=config.system_prompt,
+            user_prompt_template=config.user_prompt_template,
+            max_output_tokens=config.max_output_tokens,
+        )
 
     @staticmethod
     def _require_requirement_access(owner_id: int, current_user: CurrentUser) -> None:
@@ -107,8 +134,14 @@ class TestCaseGenerationService:
                 created_by=user_id,
             )
 
-    async def _audit_generation(self, requirement_id: int, count: int, user_id: int) -> None:
-        # BR-06 / NC-11: every generation action is appended to audit history in the same transaction.
+    async def _audit_generation(
+        self,
+        requirement_id: int,
+        count: int,
+        user_id: int,
+        prompt_config: PromptConfig,
+    ) -> None:
+        # BR-06 / NC-09 / NC-11: generation evidence includes the prompt/model version used for reproducibility.
         await self._audits.create(
             AuditLog(
                 user_id=user_id,
@@ -116,7 +149,13 @@ class TestCaseGenerationService:
                 entity_type="requirement",
                 entity_id=requirement_id,
                 before_state=None,
-                after_state={"generated_count": count, "status": TestCaseStatus.DRAFT.value},
+                after_state={
+                    "generated_count": count,
+                    "status": TestCaseStatus.DRAFT.value,
+                    "prompt_version": prompt_config.version_number,
+                    "model_name": prompt_config.model_name,
+                    "schema_version": prompt_config.schema_version,
+                },
             )
         )
 

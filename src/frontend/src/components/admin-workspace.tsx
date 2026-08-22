@@ -2,6 +2,7 @@
 
 // Source assistance: OpenAI ChatGPT, 2026-08-22 (AI-05).
 
+import { USER_ROLE } from "@/constants/user-role";
 import { useState } from "react";
 
 import type { User } from "@/types/api";
@@ -18,7 +19,7 @@ interface AdminWorkspaceProps {
 export function AdminWorkspace({ token, user }: AdminWorkspaceProps) {
   const [notice, setNotice] = useState("");
 
-  if (user.role !== "admin") {
+  if (user.role !== USER_ROLE.ADMIN) {
     return <StateBlock empty emptyText="Chỉ Admin được truy cập cấu hình hệ thống." />;
   }
 

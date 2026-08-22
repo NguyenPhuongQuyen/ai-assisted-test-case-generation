@@ -1,6 +1,7 @@
 "use client";
 
 // Source assistance: OpenAI ChatGPT, 2026-08-22 (AI-05).
+import { USER_ROLE } from "@/constants/user-role";
 import type { ReactNode } from "react";
 
 import type { User } from "@/types/api";
@@ -23,7 +24,9 @@ const labels: Record<WorkspaceKey, string> = {
 };
 
 export function AppShell({ user, active, onChange, onLogout, children }: AppShellProps) {
-  const workspaces = (Object.keys(labels) as WorkspaceKey[]).filter((key) => key !== "admin" || user.role === "admin");
+  const workspaces = (Object.keys(labels) as WorkspaceKey[]).filter(
+    (key) => key !== "admin" || user.role === USER_ROLE.ADMIN,
+  );
   return (
     <div className="app-shell">
       <aside className="sidebar">

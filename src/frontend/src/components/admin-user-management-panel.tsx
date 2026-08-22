@@ -6,6 +6,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 
 import { createUser, listUsers, updateUser } from "@/services/admin";
 import { ApiError } from "@/services/api";
+import { USER_ROLE } from "@/constants/user-role";
 import type { User, UserRole } from "@/types/api";
 
 import { FieldError, StateBlock } from "./state-block";
@@ -120,9 +121,9 @@ function CreateUserFields(props: CreateUserFieldsProps) {
       <label>
         Role
         <select value={props.role} onChange={(event) => props.onRoleChange(event.target.value as UserRole)}>
-          <option value="qa">QA</option>
-          <option value="manager">Manager</option>
-          <option value="admin">Admin</option>
+          <option value={USER_ROLE.QA}>QA</option>
+          <option value={USER_ROLE.MANAGER}>Manager</option>
+          <option value={USER_ROLE.ADMIN}>Admin</option>
         </select>
       </label>
     </>
@@ -132,7 +133,7 @@ function CreateUserFields(props: CreateUserFieldsProps) {
 function useCreateUserForm(props: UserActionProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole>("qa");
+  const [role, setRole] = useState<UserRole>(USER_ROLE.QA);
   const [busy, setBusy] = useState(false);
 
   const emailError = email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? "Email chưa đúng định dạng." : "";
@@ -248,9 +249,9 @@ function UserRow(props: UserActionProps & { user: User }) {
         disabled={actions.busy}
         aria-label={`Vai trò của ${props.user.email}`}
       >
-        <option value="qa">QA</option>
-        <option value="manager">Manager</option>
-        <option value="admin">Admin</option>
+        <option value={USER_ROLE.QA}>QA</option>
+        <option value={USER_ROLE.MANAGER}>Manager</option>
+        <option value={USER_ROLE.ADMIN}>Admin</option>
       </select>
 
       <button

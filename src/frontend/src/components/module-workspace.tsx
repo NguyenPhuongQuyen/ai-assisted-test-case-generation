@@ -1,6 +1,7 @@
 "use client";
 
 // Source assistance: OpenAI ChatGPT, 2026-08-22 (AI-05).
+import { USER_ROLE } from "@/constants/user-role";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
 import { ApiError } from "@/services/api";
@@ -123,7 +124,7 @@ interface ManagementProps {
 }
 
 function ManagementPanel(props: ManagementProps) {
-  const canManage = props.user.role === "manager";
+  const canManage = props.user.role === USER_ROLE.MANAGER;
 
   return (
     <section className="panel">
@@ -268,7 +269,7 @@ function useCoveragePanelActions(props: CoverageProps) {
 }
 
 function CoveragePanel(props: CoverageProps) {
-  const canCoverage = props.user.role === "qa" || props.user.role === "manager";
+  const canCoverage = props.user.role === USER_ROLE.QA || props.user.role === USER_ROLE.MANAGER;
 
   const actions = useCoveragePanelActions(props);
 
@@ -317,7 +318,7 @@ interface CoverageActionButtonsProps {
 }
 
 function CoverageActionButtons(props: CoverageActionButtonsProps) {
-  const exportDisabled = props.busy || !props.moduleId || props.user.role === "admin";
+  const exportDisabled = props.busy || !props.moduleId || props.user.role === USER_ROLE.ADMIN;
 
   return (
     <div className="button-row wrap-row">

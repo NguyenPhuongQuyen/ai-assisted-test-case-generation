@@ -1,6 +1,7 @@
 "use client";
 
 // Source assistance: OpenAI ChatGPT, 2026-08-22 (AI-05).
+import { USER_ROLE } from "@/constants/user-role";
 import { useEffect, useState } from "react";
 
 import { ApiError } from "@/services/api";
@@ -47,7 +48,7 @@ export function TestCaseInsights({ token, user, record, onChanged }: TestCaseIns
       </div>
       <DuplicateSection token={token} record={record} />
       <VersionSection token={token} record={record} onChanged={onChanged} />
-      {user.role === "manager" ? <TagsSection token={token} record={record} onChanged={onChanged} /> : null}
+      {user.role === USER_ROLE.MANAGER ? <TagsSection token={token} record={record} onChanged={onChanged} /> : null}
     </section>
   );
 }

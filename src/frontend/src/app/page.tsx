@@ -1,6 +1,7 @@
 "use client";
 
 // Source assistance: OpenAI ChatGPT, 2026-08-22 (AI-05).
+import { USER_ROLE } from "@/constants/user-role";
 import { useEffect, useState } from "react";
 
 import { AdminWorkspace } from "@/components/admin-workspace";
@@ -43,7 +44,7 @@ export default function HomePage() {
     setToken(session.access_token);
     setUser(session.user);
     window.localStorage.setItem(USER_KEY, JSON.stringify(session.user));
-    setWorkspace(session.user.role === "admin" ? "admin" : "requirements");
+    setWorkspace(session.user.role === USER_ROLE.ADMIN ? "admin" : "requirements");
   }
 
   function logout() {

@@ -1,6 +1,8 @@
+import { USER_ROLE } from "@/constants/user-role";
+
 // Source assistance: OpenAI ChatGPT, 2026-08-22 (AI-05).
 
-export type UserRole = "qa" | "manager" | "admin";
+export type UserRole = (typeof USER_ROLE)[keyof typeof USER_ROLE];
 export type TestCaseStatus = "draft" | "in_review" | "needs_fix" | "approved" | "exported" | "rejected";
 export type Priority = "high" | "medium" | "low";
 

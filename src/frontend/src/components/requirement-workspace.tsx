@@ -1,6 +1,7 @@
 "use client";
 
 // Source assistance: OpenAI ChatGPT, 2026-08-22 (AI-05).
+import { USER_ROLE } from "@/constants/user-role";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
 import { ApiError } from "@/services/api";
@@ -116,7 +117,7 @@ export function RequirementWorkspace({ token, user }: RequirementWorkspaceProps)
   const moduleState = useModules(token);
   const form = useRequirementForm(token, moduleState.moduleId);
   const generation = useGeneration(token, form.current);
-  if (user.role !== "qa")
+  if (user.role !== USER_ROLE.QA)
     return <StateBlock empty emptyText="Theo SRS, Requirement input và AI generation là luồng của QA." />;
   return (
     <div className="two-column">

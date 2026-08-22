@@ -1,6 +1,7 @@
 "use client";
 
 // Source assistance: OpenAI ChatGPT, 2026-08-22 (AI-05).
+import { USER_ROLE } from "@/constants/user-role";
 import { useEffect, useState } from "react";
 
 import { ApiError } from "@/services/api";
@@ -205,7 +206,7 @@ interface ActionProps {
   onTransition: (action: "review" | "approve" | "request-fix" | "reject") => Promise<void>;
 }
 function EditorActions({ user, busy, invalid, onSave, onTransition }: ActionProps) {
-  const canReview = user.role === "qa" || user.role === "manager";
+  const canReview = user.role === USER_ROLE.QA || user.role === USER_ROLE.MANAGER;
   return (
     <div className="button-row wrap-row">
       <button

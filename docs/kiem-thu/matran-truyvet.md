@@ -19,7 +19,7 @@
 | BR-03 | Test Case gắn module và requirement nguồn | TC-APP-001, TC-GEN-004 | PASS - Unit Test |
 | BR-04 | Structured output phải validate schema | TC-GEN-006 | PASS - Unit Test |
 | BR-05 | Chỉ user có quyền được approve/export | TC-APP-003, TC-EXP-004, TC-AUTHZ-001, TC-AUTHZ-002, TC-AUTHZ-003 | PASS - Unit Test cho các rule đã tự động kiểm; authorization matrix đã thiết kế |
-| BR-06 | Generate/edit/approve/export có version/audit | TC-GEN-004, TC-REV-001, TC-APP-001, TC-EXP-001 | PASS - Unit Test |
+| BR-06 | Generate/edit/approve được lưu version và audit | TC-GEN-004, TC-REV-001, TC-APP-001 | PASS - Unit Test |
 | BR-07 | Requirement/Test Case được phân quyền | TC-REQ-015, TC-VER-005, TC-GEN-005, TC-AUTHZ-001 | PASS - Unit Test |
 | BR-08 | Requirement thay đổi -> Test Case cần review lại | TC-REQ-017 | PASS - Unit Test |
 | BR-09 | Chính sách chất lượng/boundary/high priority | TC-DUP-001, TC-DUP-002, TC-DUP-003, TC-REQ-012, TC-REQ-013, TC-REQ-014, TC-APP-001 | TC-07 đã thiết kế; một số boundary manual/integration chưa chạy |

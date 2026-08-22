@@ -8,7 +8,7 @@
 - Hoàn thiện Human-in-the-loop: edit, submit review, approve, request-fix và reject theo vòng đời trạng thái.
 - Bổ sung optimistic locking bằng `lock_version`, version snapshot và audit cho thao tác review.
 - Bổ sung NC-05 duplicate detection bằng PostgreSQL pgvector, cosine similarity, HNSW index và embedding rebuild script.
-- Bổ sung NC-07 export CSV/XLSX, chỉ lấy Test Case `APPROVED`, có kiểm quyền và audit.
+- Bổ sung NC-07 export CSV/XLSX, chỉ lấy Test Case `APPROVED`; sau khi export thành công các Test Case đã xuất chuyển sang `EXPORTED`, có kiểm quyền và audit.
 - Bổ sung NC-06 quản lý Module, tags và NC-12 coverage/statistics theo module.
 - Bổ sung NC-09 versioned Prompt/Model Configuration; generation lấy active config thay vì prompt nghiệp vụ hardcode.
 - Bổ sung NC-08 list/compare/restore Test Case version.
@@ -38,7 +38,7 @@
 - Backend Ruff check: PASS.
 - Backend Ruff format check: PASS.
 - Backend Unit Test: **69 passed** trên local tại commit `d3e7f71`. Gói hoàn thiện cuối bổ sung 4 test NC-10; cần chạy lại full suite trước PR.
-- Alembic đã xác nhận `0008_nc08_version_restore (head)`; sau khi áp dụng gói cuối cần nâng lên `0009_nc10_user_admin`.
+- Alembic đã xác nhận `0009_nc10_user_admin (head)`.
 - Swagger đã hiển thị các endpoint Module, Prompt Config, Requirement Update, Test Case Version/Restore và các endpoint HITL.
 - RabbitMQ/Celery worker đã kết nối local ở các bước kiểm thử trước trong Tuần 07.
 - pgvector đã được build/install vào PostgreSQL 18 local và migration `0004` chạy thành công.
@@ -74,6 +74,20 @@
 
 ## 6. Câu hỏi cho GVHD
 
-Tuần 07 em đã hoàn thiện frontend cho các luồng chính, bổ sung HITL review, pgvector duplicate detection, module/coverage, export, prompt configuration và version restore. Test case đã được cập nhật theo TC-07 và ma trận truy vết TC-08; backend local hiện có 69 Unit Test PASS trước bước hoàn thiện frontend/docs.
+Tuần 07 em đã hoàn thiện frontend cho các luồng chính, bổ sung HITL review, pgvector duplicate detection, module/coverage, export, prompt configuration và version restore. Test case đã được cập nhật theo TC-07 và ma trận truy vết TC-08; backend local hiện có 73 Unit Test PASS.
+
+## Minh chứng triển khai Tuần 07
+
+- `docs/assets/week07/01-swagger-api-overview-1.png`
+- `docs/assets/week07/02-swagger-api-overview-2.png`
+- `docs/assets/week07/03-requirement-srs-saved.jpg`
+- `docs/assets/week07/04-hitl-review-needs-fix.jpg`
+- `docs/assets/week07/05-approved-testcase.jpg`
+- `docs/assets/week07/06-version-compare-restore.jpg`
+- `docs/assets/week07/07-module-coverage.jpg`
+- `docs/assets/week07/08-export-file-content.jpg`
+- `docs/assets/week07/09-export-csv-opened.jpg`
+- `docs/assets/week07/10-export-xlsx-opened.jpg`
+- `docs/assets/week07/11-backend-tests-quality-pass.jpg`
 
 Cho em hỏi với phần duplicate detection, việc dùng PostgreSQL pgvector + HNSW + cosine similarity và embedding rebuild script như hiện tại đã phù hợp yêu cầu vector database của đề tài chưa, hay thầy muốn em bổ sung thêm tiêu chí đánh giá duplicate vào gold set ở giai đoạn Tuần 08–09?

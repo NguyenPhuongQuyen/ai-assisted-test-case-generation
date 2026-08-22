@@ -38,7 +38,7 @@ Frontend có các workspace theo role:
 - QA/Manager: danh sách Test Case, edit, review, approve, request-fix, reject.
 - Duplicate candidate bằng pgvector và lịch sử version/compare/restore.
 - Manager: module, tags và coverage/statistics.
-- QA/Manager: export CSV/XLSX các Test Case `APPROVED`.
+- QA/Manager: export CSV/XLSX các Test Case `APPROVED`; sau export thành công các Test Case đã xuất chuyển sang `EXPORTED`.
 - Admin: tạo/list/cập nhật/vô hiệu hóa User và quản lý versioned Prompt/Model configuration.
 
 Các màn hình có trạng thái loading, empty và error để đáp ứng FE-03.

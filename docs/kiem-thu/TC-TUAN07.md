@@ -15,7 +15,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 
 | Kỹ thuật | Áp dụng |
 |---|---|
-| State Transition | Vòng đời Test Case: DRAFT → IN_REVIEW → APPROVED / NEEDS_FIX / REJECTED |
+| State Transition | Vòng đời Test Case: DRAFT → IN_REVIEW → APPROVED → EXPORTED; có thể chuyển sang NEEDS_FIX hoặc REJECTED theo rule |
 | Decision Table | Quyền theo role × trạng thái × hành động approve/export/module/prompt |
 | Boundary Value Analysis | Requirement min 20 ký tự; similarity threshold 0.85; pagination/pageSize; tags tối đa 10 |
 | Equivalence Partitioning | Input hợp lệ/không hợp lệ cho Requirement, Module, Prompt Config, User |
@@ -322,7 +322,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Tiền điều kiện | QA/Manager có quyền; tồn tại ít nhất một APPROVED và một DRAFT. |
 | Dữ liệu đầu vào | Format `CSV`. |
 | Các bước | 1. Mở danh sách Test Case. 2. Chọn Export CSV. 3. Mở file tải về. 4. Kiểm tra audit. |
-| Kết quả mong đợi | File CSV chỉ chứa APPROVED; có audit export. |
+| Kết quả mong đợi | File CSV chỉ chứa các Test Case đang APPROVED tại thời điểm export; sau export thành công các record đó chuyển EXPORTED; có audit export. |
 | Kết quả thực tế | Unit Test PASS; manual đã tải được CSV. |
 | Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
 
@@ -336,7 +336,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Tiền điều kiện | QA/Manager có quyền; có Test Case APPROVED. |
 | Dữ liệu đầu vào | Format `XLSX`. |
 | Các bước | 1. Chọn Export XLSX. 2. Tải file. 3. Mở file bằng Excel. |
-| Kết quả mong đợi | File XLSX mở được; chỉ chứa Test Case APPROVED. |
+| Kết quả mong đợi | File XLSX mở được và chỉ chứa các Test Case đang APPROVED tại thời điểm export; sau export thành công các record đó chuyển EXPORTED. |
 | Kết quả thực tế | Unit Test PASS; manual XLSX đã mở đúng. |
 | Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
 
@@ -542,8 +542,8 @@ Kỹ thuật chính: **Decision Table (role × status × format)**.
 
 | ID | Role | Dữ liệu | Format | Kết quả mong đợi | Trạng thái |
 |---|---|---|---|---|---|
-| TC-EXP-001 | QA/Manager | Có APPROVED | CSV | Tải CSV, chỉ gồm APPROVED, audit export | PASS - Unit Test |
-| TC-EXP-002 | QA/Manager | Có APPROVED | XLSX | Tải XLSX bằng openpyxl | PASS - Unit Test |
+| TC-EXP-001 | QA/Manager | Có APPROVED | CSV | Tải CSV từ APPROVED; export thành công chuyển record sang EXPORTED; có audit | PASS - Unit Test |
+| TC-EXP-002 | QA/Manager | Có APPROVED | XLSX | Tải XLSX bằng openpyxl; export thành công chuyển record sang EXPORTED | PASS - Unit Test |
 | TC-EXP-003 | QA/Manager | Chỉ DRAFT/REJECTED | CSV | Không export record chưa approved | PASS - Unit Test |
 | TC-EXP-004 | Admin | Có APPROVED | CSV | HTTP 403 theo SRS hiện tại | PASS - Unit Test |
 | TC-EXP-005 | QA | Record chứa `=SUM(...)` | XLSX | Neutralize spreadsheet formula injection | PASS - Unit Test |

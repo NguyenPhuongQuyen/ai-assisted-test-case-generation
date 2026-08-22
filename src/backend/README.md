@@ -17,7 +17,7 @@ python -m venv .venv
 source .venv/Scripts/activate
 
 # Nếu dùng CMD:
-# .venv\Scripts\activate.bat.bat
+# .venv\Scripts\activate.bat
 
 python -m pip install -r src/backend/requirements.txt
 

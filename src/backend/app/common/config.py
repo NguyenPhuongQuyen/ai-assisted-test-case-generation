@@ -27,7 +27,7 @@ class Settings(BaseSettings):
 
     celery_broker_url: str = Field(min_length=1)
 
-    frontend_origin: str = "http://localhost:3000"
+    frontend_origin: str = Field(min_length=1)
     log_level: str = "INFO"
     demo_user_password: str = Field(default="Demo_Change_Me_123!", min_length=10)
 

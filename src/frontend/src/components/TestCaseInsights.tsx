@@ -195,11 +195,19 @@ function VersionControls({ state }: { state: VersionState }) {
   return (
     <div className="subsection compact-subsection">
       <div className="compare-controls">
-        <select value={state.fromVersion} onChange={(event) => state.setFromVersion(Number(event.target.value))}>
+        <select
+          aria-label="Phiên bản nguồn để so sánh"
+          value={state.fromVersion}
+          onChange={(event) => state.setFromVersion(Number(event.target.value))}
+        >
           <VersionOptions versions={state.versions} />
         </select>
         <span>→</span>
-        <select value={state.toVersion} onChange={(event) => state.setToVersion(Number(event.target.value))}>
+        <select
+          aria-label="Phiên bản đích để so sánh"
+          value={state.toVersion}
+          onChange={(event) => state.setToVersion(Number(event.target.value))}
+        >
           <VersionOptions versions={state.versions} />
         </select>
         <button className="ghost-button compact" disabled={state.loading} onClick={state.compare} type="button">

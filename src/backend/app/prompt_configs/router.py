@@ -6,8 +6,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit.repository import AuditLogRepository
-from app.auth.dependencies import get_current_user
-from app.auth.schemas import CurrentUser
+from app.common.auth_context import CurrentUser, get_current_user
 from app.common.database import get_session
 from app.prompt_configs.repository import PromptConfigRepository
 from app.prompt_configs.schemas import PromptConfigCreateRequest, PromptConfigListResponse, PromptConfigResponse

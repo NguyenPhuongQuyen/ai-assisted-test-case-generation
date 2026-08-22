@@ -7,9 +7,9 @@ from celery import shared_task
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit.repository import AuditLogRepository
-from app.auth.schemas import CurrentUser
 from app.common.ai.embedding_adapter import OpenAIEmbeddingAdapter
 from app.common.ai.openai_adapter import OpenAIAdapter
+from app.common.auth_context import CurrentUser
 from app.common.constants import GENERATION_TASK_NAME, ErrorCode, GenerationJobStatus
 from app.common.database import get_session_factory
 from app.common.exceptions import AppError

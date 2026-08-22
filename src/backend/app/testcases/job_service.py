@@ -4,7 +4,7 @@ import logging
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.schemas import CurrentUser
+from app.common.auth_context import CurrentUser
 from app.common.constants import ErrorCode, GenerationJobStatus, UserRole
 from app.common.exceptions import AppError
 from app.common.rate_limit import SlidingWindowRateLimiter

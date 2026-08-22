@@ -1,6 +1,6 @@
 # Source assistance: OpenAI ChatGPT, 2026-08-21 (AI-05).
 
-from app.auth.schemas import CurrentUser
+from app.common.auth_context import CurrentUser
 from app.common.constants import ErrorCode, TestCaseStatus, UserRole
 from app.common.exceptions import AppError
 from app.testcases.models import TestCase

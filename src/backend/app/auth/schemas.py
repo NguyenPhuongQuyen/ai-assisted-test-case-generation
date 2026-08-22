@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from app.common.constants import AUTH_SCHEME_BEARER, UserRole
+from app.common.auth_context import CurrentUser as CurrentUser
+from app.common.constants import AUTH_SCHEME_BEARER
 from app.users.schemas import UserResponse
 
 
@@ -9,11 +10,6 @@ class LoginRequest(BaseModel):
 
     email: EmailStr
     password: str = Field(min_length=1, max_length=128)
-
-
-class CurrentUser(BaseModel):
-    id: int
-    role: UserRole
 
 
 class AuthResponse(BaseModel):

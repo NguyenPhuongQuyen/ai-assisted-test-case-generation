@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit.models import AuditLog
 from app.audit.repository import AuditLogRepository
-from app.auth.schemas import CurrentUser
+from app.common.auth_context import CurrentUser
 from app.common.constants import (
     AuditAction,
     ErrorCode,

@@ -4,8 +4,8 @@ import logging
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.schemas import CurrentUser
 from app.common.ai.embedding_adapter import OpenAIEmbeddingAdapter
+from app.common.auth_context import CurrentUser
 from app.common.config import get_settings
 from app.common.constants import UserRole
 from app.testcases.query_service import TestCaseQueryService

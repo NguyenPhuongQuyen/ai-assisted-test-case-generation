@@ -7,9 +7,8 @@ from fastapi import APIRouter, Depends, Path, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit.repository import AuditLogRepository
-from app.auth.dependencies import get_current_user
-from app.auth.schemas import CurrentUser
 from app.common.ai.embedding_adapter import OpenAIEmbeddingAdapter
+from app.common.auth_context import CurrentUser, get_current_user
 from app.common.config import get_settings
 from app.common.constants import EMBEDDING_DIMENSIONS, TestCaseExportFormat, TestCaseStatus
 from app.common.database import get_session

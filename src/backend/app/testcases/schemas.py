@@ -105,6 +105,9 @@ class DuplicateCandidateResponse(BaseModel):
 
 class DuplicateCandidateListResponse(BaseModel):
     data: list[DuplicateCandidateResponse]
+    total: int = Field(ge=0)
+    page: int = Field(ge=1)
+    page_size: int = Field(serialization_alias="pageSize", ge=1)
     threshold: float = Field(ge=0.0, le=1.0)
     embedding_model: str = Field(serialization_alias="embeddingModel")
     embedding_dimensions: int = Field(serialization_alias="embeddingDimensions")

@@ -102,6 +102,9 @@ export interface DuplicateCandidate {
 
 export interface DuplicateCandidateListResponse {
   data: DuplicateCandidate[];
+  total: number;
+  page: number;
+  pageSize: number;
   threshold: number;
   embeddingModel: string;
   embeddingDimensions: number;

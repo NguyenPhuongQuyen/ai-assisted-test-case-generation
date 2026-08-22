@@ -8,11 +8,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.common.constants import Priority, TestCaseStatus
 from app.testcases.models import TestCase
 
-_DUPLICATE_QUERY_ALL = """
-    WITH target AS (SELECT embedding FROM test_cases WHERE id = :test_case_id)
-    SELECT candidate.id, candidate.requirement_id, candidate.summary,
-           candidate.status::text AS status, candidate.priority::text AS priority,
-           1 - (candidate.embedding <=> target.embedding) AS similarity
+_DUPLICATE_LIST_ALL = """
+    WITH target AS (
+        SELECT embedding
+        FROM test_cases
+        WHERE id = :test_case_id
+    )
+    SELECT
+        candidate.id,
+        candidate.requirement_id,
+        candidate.summary,
+        candidate.status::text AS status,
+        candidate.priority::text AS priority,
+        1 - (candidate.embedding <=> target.embedding) AS similarity
     FROM test_cases AS candidate
     CROSS JOIN target
     WHERE target.embedding IS NOT NULL
@@ -22,14 +30,22 @@ _DUPLICATE_QUERY_ALL = """
       AND candidate.status::text <> 'rejected'
       AND (candidate.embedding <=> target.embedding) <= :max_distance
     ORDER BY candidate.embedding <=> target.embedding
-    LIMIT :limit
+    LIMIT :limit OFFSET :offset
 """
 
-_DUPLICATE_QUERY_OWNER = """
-    WITH target AS (SELECT embedding FROM test_cases WHERE id = :test_case_id)
-    SELECT candidate.id, candidate.requirement_id, candidate.summary,
-           candidate.status::text AS status, candidate.priority::text AS priority,
-           1 - (candidate.embedding <=> target.embedding) AS similarity
+_DUPLICATE_LIST_OWNER = """
+    WITH target AS (
+        SELECT embedding
+        FROM test_cases
+        WHERE id = :test_case_id
+    )
+    SELECT
+        candidate.id,
+        candidate.requirement_id,
+        candidate.summary,
+        candidate.status::text AS status,
+        candidate.priority::text AS priority,
+        1 - (candidate.embedding <=> target.embedding) AS similarity
     FROM test_cases AS candidate
     CROSS JOIN target
     WHERE target.embedding IS NOT NULL
@@ -40,7 +56,42 @@ _DUPLICATE_QUERY_OWNER = """
       AND (candidate.embedding <=> target.embedding) <= :max_distance
       AND candidate.created_by = :owner_id
     ORDER BY candidate.embedding <=> target.embedding
-    LIMIT :limit
+    LIMIT :limit OFFSET :offset
+"""
+
+_DUPLICATE_COUNT_ALL = """
+    WITH target AS (
+        SELECT embedding
+        FROM test_cases
+        WHERE id = :test_case_id
+    )
+    SELECT COUNT(*)
+    FROM test_cases AS candidate
+    CROSS JOIN target
+    WHERE target.embedding IS NOT NULL
+      AND candidate.id <> :test_case_id
+      AND candidate.module_id = :module_id
+      AND candidate.embedding IS NOT NULL
+      AND candidate.status::text <> 'rejected'
+      AND (candidate.embedding <=> target.embedding) <= :max_distance
+"""
+
+_DUPLICATE_COUNT_OWNER = """
+    WITH target AS (
+        SELECT embedding
+        FROM test_cases
+        WHERE id = :test_case_id
+    )
+    SELECT COUNT(*)
+    FROM test_cases AS candidate
+    CROSS JOIN target
+    WHERE target.embedding IS NOT NULL
+      AND candidate.id <> :test_case_id
+      AND candidate.module_id = :module_id
+      AND candidate.embedding IS NOT NULL
+      AND candidate.status::text <> 'rejected'
+      AND (candidate.embedding <=> target.embedding) <= :max_distance
+      AND candidate.created_by = :owner_id
 """
 
 
@@ -112,23 +163,44 @@ class TestCaseRepository:
         module_id: int,
         owner_id: int | None,
         threshold: float,
+        offset: int,
         limit: int,
-    ) -> list[DuplicateCandidateRecord]:
-        statement = self._duplicate_statement(owner_id is not None)
+    ) -> tuple[list[DuplicateCandidateRecord], int]:
+        filter_owner = owner_id is not None
         parameters = {
             "test_case_id": test_case_id,
             "module_id": module_id,
             "max_distance": 1.0 - threshold,
-            "limit": limit,
         }
         if owner_id is not None:
             parameters["owner_id"] = owner_id
-        result = await self._session.execute(statement, parameters)
-        return [self._to_duplicate_candidate(row) for row in result.mappings().all()]
+
+        count_result = await self._session.execute(
+            self._duplicate_statement(filter_owner, count=True),
+            parameters,
+        )
+        total = int(count_result.scalar_one())
+
+        parameters["offset"] = offset
+        parameters["limit"] = limit
+        result = await self._session.execute(
+            self._duplicate_statement(filter_owner),
+            parameters,
+        )
+        candidates = [self._to_duplicate_candidate(row) for row in result.mappings().all()]
+        return candidates, total
 
     @staticmethod
-    def _duplicate_statement(filter_owner: bool):
-        return text(_DUPLICATE_QUERY_OWNER if filter_owner else _DUPLICATE_QUERY_ALL)
+    def _duplicate_statement(
+        filter_owner: bool,
+        *,
+        count: bool = False,
+    ):
+        if count:
+            query = _DUPLICATE_COUNT_OWNER if filter_owner else _DUPLICATE_COUNT_ALL
+        else:
+            query = _DUPLICATE_LIST_OWNER if filter_owner else _DUPLICATE_LIST_ALL
+        return text(query)
 
     @staticmethod
     def _to_duplicate_candidate(row) -> DuplicateCandidateRecord:  # type: ignore[no-untyped-def]

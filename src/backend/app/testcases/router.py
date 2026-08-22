@@ -208,15 +208,27 @@ async def list_duplicate_candidates(
     test_case_id: TestCaseIdParam,
     session: SessionDep,
     current_user: CurrentUserDep,
-    limit: Annotated[int, Query(ge=1, le=20)] = 5,
+    page: PageParam = 1,
+    page_size: PageSizeParam = 5,
 ) -> DuplicateCandidateListResponse:
-    candidates, threshold, model = await build_duplicate_service(session).find_candidates(
+    offset = (page - 1) * page_size
+    candidates, total, threshold, model = await build_duplicate_service(session).find_candidates(
         test_case_id,
         current_user,
-        limit=limit,
+        offset=offset,
+        limit=page_size,
     )
     return DuplicateCandidateListResponse(
-        data=[DuplicateCandidateResponse.model_validate(candidate, from_attributes=True) for candidate in candidates],
+        data=[
+            DuplicateCandidateResponse.model_validate(
+                candidate,
+                from_attributes=True,
+            )
+            for candidate in candidates
+        ],
+        total=total,
+        page=page,
+        page_size=page_size,
         threshold=threshold,
         embedding_model=model,
         embedding_dimensions=EMBEDDING_DIMENSIONS,

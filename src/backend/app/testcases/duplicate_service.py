@@ -36,35 +36,45 @@ class DuplicateDetectionService:
         test_case_id: int,
         current_user: CurrentUser,
         *,
+        offset: int,
         limit: int,
-    ) -> tuple[list[DuplicateCandidateRecord], float, str]:
-        """Return semantically similar test cases visible to the current user.
+    ) -> tuple[list[DuplicateCandidateRecord], int, float, str]:
+        """Return a paginated list of visible semantic duplicate candidates.
 
         Args:
             test_case_id: Test case used as the similarity target.
-            current_user: Authenticated user requesting duplicate candidates.
-            limit: Maximum number of candidates returned by the database query.
+            current_user: Authenticated user requesting candidates.
+            offset: Number of matching candidates to skip.
+            limit: Maximum candidates returned in the current page.
 
         Returns:
-            Candidate rows, configured similarity threshold, and embedding model name.
+            Candidates, total match count, threshold, and embedding model.
 
         Raises:
-            AppError: When the target record is missing, forbidden, or embedding generation fails.
+            AppError: When the target is missing, forbidden, or embedding fails.
         """
-        target = await self._query_service.get_test_case(test_case_id, current_user)
+        target = await self._query_service.get_test_case(
+            test_case_id,
+            current_user,
+        )
         if not await self._test_cases.has_embedding(target.id):
             await self._embed_and_store(target)
 
-        # BR-07 / NC-05: duplicate search must preserve the same record-level visibility as the review screen.
         owner_id = current_user.id if current_user.role == UserRole.QA else None
-        candidates = await self._test_cases.find_duplicate_candidates(
+        candidates, total = await self._test_cases.find_duplicate_candidates(
             test_case_id=target.id,
             module_id=target.module_id,
             owner_id=owner_id,
             threshold=self._threshold,
+            offset=offset,
             limit=limit,
         )
-        return candidates, self._threshold, self._embedding_model
+        return (
+            candidates,
+            total,
+            self._threshold,
+            self._embedding_model,
+        )
 
     async def _embed_and_store(self, test_case) -> None:  # type: ignore[no-untyped-def]
         result = await self._embeddings.embed_texts([build_test_case_semantic_text(test_case)])

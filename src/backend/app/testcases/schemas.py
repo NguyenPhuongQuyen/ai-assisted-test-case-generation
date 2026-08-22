@@ -3,28 +3,16 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.common.ai.schemas import (
+    GeneratedTestCase as GeneratedTestCase,
+)
+from app.common.ai.schemas import (
+    GeneratedTestCaseBatch as GeneratedTestCaseBatch,
+)
 from app.common.constants import GenerationJobStatus, Priority, TestCaseStatus
 
 ShortText = Annotated[str, Field(min_length=1, max_length=500)]
 TechniqueText = Annotated[str, Field(min_length=1, max_length=100)]
-
-
-class GeneratedTestCase(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    summary: str = Field(min_length=3, max_length=300)
-    preconditions: list[str] = Field(default_factory=list, max_length=20)
-    steps: list[str] = Field(min_length=1, max_length=30)
-    expected_result: str = Field(min_length=3, max_length=1000)
-    priority: Priority
-    test_techniques: list[str] = Field(default_factory=list, max_length=10)
-    review_note: str | None = Field(default=None, max_length=1000)
-
-
-class GeneratedTestCaseBatch(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    test_cases: list[GeneratedTestCase] = Field(min_length=1, max_length=50)
 
 
 class GenerationJobResponse(BaseModel):

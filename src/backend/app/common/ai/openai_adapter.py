@@ -4,10 +4,10 @@ from dataclasses import dataclass
 from openai import AsyncOpenAI
 from pydantic import ValidationError
 
+from app.common.ai.schemas import GeneratedTestCaseBatch
 from app.common.config import get_settings
 from app.common.constants import ErrorCode
 from app.common.exceptions import AppError
-from app.testcases.schemas import GeneratedTestCaseBatch
 
 logger = logging.getLogger(__name__)
 

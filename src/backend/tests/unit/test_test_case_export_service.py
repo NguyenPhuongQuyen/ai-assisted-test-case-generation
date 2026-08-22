@@ -44,7 +44,8 @@ def build_service(*, test_cases=None, module_exists: bool = True):
 
 @pytest.mark.asyncio
 async def test_qa_exports_only_owned_approved_records_and_audits_csv() -> None:
-    service, session, repository, _, audits = build_service(test_cases=[make_case()])
+    case = make_case()
+    service, session, repository, _, audits = build_service(test_cases=[case])
 
     exported = await service.export_approved_test_cases(
         3,
@@ -68,6 +69,7 @@ async def test_qa_exports_only_owned_approved_records_and_audits_csv() -> None:
     assert audit.action == AuditAction.EXPORT_TEST_CASES
     assert audit.entity_id == 3
     assert audit.after_state["test_case_ids"] == [10]
+    assert case.status == CaseStatus.EXPORTED
     session.commit.assert_awaited_once()
 
 

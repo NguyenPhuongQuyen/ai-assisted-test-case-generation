@@ -121,6 +121,12 @@ class TestCaseExportService:
             test_cases,
         )
 
+        # BRD lifecycle: APPROVED -> EXPORTED after the export artifact
+        # has been built successfully. Exported records remain traceable
+        # and are revalidated to NEEDS_FIX if their requirement changes.
+        for test_case in test_cases:
+            test_case.status = TestCaseStatus.EXPORTED
+
         # BR-06 / NC-11: export action is auditable.
         await self._record_export(
             module_id,

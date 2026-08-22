@@ -12,6 +12,11 @@ on:
 jobs:
   backend-quality:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql+asyncpg://ci:ci@127.0.0.1:5432/ci_test
+      JWT_SECRET: ci-test-jwt-secret-not-for-production
+      OPENAI_API_KEY: ci-test-openai-key
+      CELERY_BROKER_URL: amqp://guest:guest@127.0.0.1:5672//
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7

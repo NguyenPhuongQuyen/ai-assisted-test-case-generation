@@ -1,3 +1,5 @@
+# Source assistance: OpenAI ChatGPT, 2026-08-23 (AI-05).
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -10,7 +12,7 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
-def upgrade() -> None:
+def _create_job_status() -> postgresql.ENUM:
     job_status = postgresql.ENUM(
         "queued",
         "running",
@@ -20,7 +22,12 @@ def upgrade() -> None:
         create_type=False,
     )
     job_status.create(op.get_bind(), checkfirst=True)
+    return job_status
 
+
+def _create_generation_jobs_table(
+    job_status: postgresql.ENUM,
+) -> None:
     op.create_table(
         "generation_jobs",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -53,6 +60,8 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
 
+
+def _create_generation_job_indexes() -> None:
     op.create_index(
         op.f("ix_generation_jobs_requirement_id"),
         "generation_jobs",
@@ -68,6 +77,12 @@ def upgrade() -> None:
         "generation_jobs",
         ["status"],
     )
+
+
+def upgrade() -> None:
+    job_status = _create_job_status()
+    _create_generation_jobs_table(job_status)
+    _create_generation_job_indexes()
 
 
 def downgrade() -> None:

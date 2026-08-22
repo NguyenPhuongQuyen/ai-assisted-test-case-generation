@@ -55,6 +55,14 @@ async def test_qa_exports_only_owned_approved_records_and_audits_csv() -> None:
     repository.list_approved_for_export.assert_awaited_once_with(module_id=3, owner_id=7)
     assert exported.filename == "test-cases-module-3.csv"
     assert exported.content.startswith(b"\xef\xbb\xbf")
+    decoded = exported.content.decode("utf-8-sig")
+
+    assert "Requirement ID" in decoded
+    assert "Expected Result" in decoded
+    assert "1. User is signed in" in decoded
+    assert "1. Open product | 2. Add product to cart" in decoded
+    assert "HIGH" in decoded
+    assert "APPROVED" in decoded
     assert b"Add product to cart" in exported.content
     audit = audits.create.await_args.args[0]
     assert audit.action == AuditAction.EXPORT_TEST_CASES
@@ -157,7 +165,19 @@ async def test_xlsx_export_is_valid_and_formula_text_is_neutralized() -> None:
         CurrentUser(id=7, role=UserRole.QA),
     )
 
-    workbook = load_workbook(BytesIO(exported.content), read_only=True, data_only=False)
-    worksheet = workbook["Test Cases"]
-    assert worksheet.cell(row=2, column=4).value == '\'=HYPERLINK("https://example.com")'
-    assert worksheet.cell(row=2, column=11).value == "approved"
+    workbook = load_workbook(BytesIO(exported.content), read_only=False, data_only=False)
+    worksheet = workbook["Approved Test Cases"]
+
+    assert worksheet["A1"].value == "TEST CASE EXPORT"
+    assert worksheet["A3"].value == "Module ID"
+    assert worksheet["B3"].value == 3
+    assert worksheet["B4"].value == "APPROVED"
+    assert worksheet["B5"].value == 1
+
+    assert worksheet.cell(row=7, column=4).value == "Summary"
+    assert worksheet.cell(row=8, column=4).value == '\'=HYPERLINK("https://example.com")'
+    assert worksheet.cell(row=8, column=5).value == "1. User is signed in"
+    assert worksheet.cell(row=8, column=11).value == "approved"
+
+    assert worksheet.freeze_panes == "A8"
+    assert worksheet.cell(row=8, column=4).alignment.wrap_text is True

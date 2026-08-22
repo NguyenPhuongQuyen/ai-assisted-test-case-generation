@@ -15,8 +15,28 @@ interface AdminUserManagementPanelProps {
   onNotice: (value: string) => void;
 }
 
+interface UserActionProps {
+  token: string;
+  onChanged: () => Promise<void>;
+  onNotice: (value: string) => void;
+  onError: (value: string) => void;
+}
+
+interface CreateUserFieldsProps {
+  email: string;
+  password: string;
+  role: UserRole;
+  emailError: string;
+  passwordError: string;
+  onEmailChange: (value: string) => void;
+  onPasswordChange: (value: string) => void;
+  onRoleChange: (value: UserRole) => void;
+}
+
 function errorText(error: unknown): string {
-  if (error instanceof ApiError) return error.message;
+  if (error instanceof ApiError) {
+    return error.message;
+  }
 
   return error instanceof Error ? error.message : "Không thể cập nhật người dùng.";
 }
@@ -70,14 +90,46 @@ export function AdminUserManagementPanel({ token, onNotice }: AdminUserManagemen
   );
 }
 
-interface UserActionProps {
-  token: string;
-  onChanged: () => Promise<void>;
-  onNotice: (value: string) => void;
-  onError: (value: string) => void;
+function CreateUserFields(props: CreateUserFieldsProps) {
+  return (
+    <>
+      <label>
+        Email
+        <input
+          type="email"
+          value={props.email}
+          onChange={(event) => props.onEmailChange(event.target.value)}
+          required
+        />
+        <FieldError message={props.emailError} />
+      </label>
+
+      <label>
+        Password
+        <input
+          type="password"
+          value={props.password}
+          onChange={(event) => props.onPasswordChange(event.target.value)}
+          minLength={10}
+          maxLength={128}
+          required
+        />
+        <FieldError message={props.passwordError} />
+      </label>
+
+      <label>
+        Role
+        <select value={props.role} onChange={(event) => props.onRoleChange(event.target.value as UserRole)}>
+          <option value="qa">QA</option>
+          <option value="manager">Manager</option>
+          <option value="admin">Admin</option>
+        </select>
+      </label>
+    </>
+  );
 }
 
-function CreateUserForm(props: UserActionProps) {
+function useCreateUserForm(props: UserActionProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>("qa");
@@ -113,48 +165,46 @@ function CreateUserForm(props: UserActionProps) {
     }
   }
 
+  return {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    role,
+    setRole,
+    busy,
+    emailError,
+    passwordError,
+    submit,
+  };
+}
+
+function CreateUserForm(props: UserActionProps) {
+  const form = useCreateUserForm(props);
+
+  const disabled = form.busy || Boolean(form.emailError || form.passwordError) || !form.email || !form.password;
+
   return (
-    <form className="stack-form" onSubmit={submit}>
-      <label>
-        Email
-        <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
-        <FieldError message={emailError} />
-      </label>
+    <form className="stack-form" onSubmit={form.submit}>
+      <CreateUserFields
+        email={form.email}
+        password={form.password}
+        role={form.role}
+        emailError={form.emailError}
+        passwordError={form.passwordError}
+        onEmailChange={form.setEmail}
+        onPasswordChange={form.setPassword}
+        onRoleChange={form.setRole}
+      />
 
-      <label>
-        Password
-        <input
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          minLength={10}
-          maxLength={128}
-          required
-        />
-        <FieldError message={passwordError} />
-      </label>
-
-      <label>
-        Role
-        <select value={role} onChange={(event) => setRole(event.target.value as UserRole)}>
-          <option value="qa">QA</option>
-          <option value="manager">Manager</option>
-          <option value="admin">Admin</option>
-        </select>
-      </label>
-
-      <button
-        className="primary-button"
-        disabled={busy || Boolean(emailError || passwordError) || !email || !password}
-        type="submit"
-      >
-        {busy ? "Đang tạo..." : "Tạo tài khoản"}
+      <button className="primary-button" disabled={disabled} type="submit">
+        {form.busy ? "Đang tạo..." : "Tạo tài khoản"}
       </button>
     </form>
   );
 }
 
-function UserRow(props: UserActionProps & { user: User }) {
+function useUserRowActions(props: UserActionProps & { user: User }) {
   const [role, setRole] = useState<UserRole>(props.user.role);
   const [busy, setBusy] = useState(false);
 
@@ -166,7 +216,6 @@ function UserRow(props: UserActionProps & { user: User }) {
       const updated = await updateUser(props.token, props.user.id, input);
 
       props.onNotice(`Đã cập nhật ${updated.email}.`);
-
       await props.onChanged();
     } catch (requestError) {
       props.onError(errorText(requestError));
@@ -174,6 +223,17 @@ function UserRow(props: UserActionProps & { user: User }) {
       setBusy(false);
     }
   }
+
+  return {
+    role,
+    setRole,
+    busy,
+    save,
+  };
+}
+
+function UserRow(props: UserActionProps & { user: User }) {
+  const actions = useUserRowActions(props);
 
   return (
     <div className="user-row">
@@ -183,9 +243,9 @@ function UserRow(props: UserActionProps & { user: User }) {
       </div>
 
       <select
-        value={role}
-        onChange={(event) => setRole(event.target.value as UserRole)}
-        disabled={busy}
+        value={actions.role}
+        onChange={(event) => actions.setRole(event.target.value as UserRole)}
+        disabled={actions.busy}
         aria-label={`Vai trò của ${props.user.email}`}
       >
         <option value="qa">QA</option>
@@ -195,8 +255,8 @@ function UserRow(props: UserActionProps & { user: User }) {
 
       <button
         className="ghost-button compact"
-        disabled={busy || role === props.user.role}
-        onClick={() => save({ role })}
+        disabled={actions.busy || actions.role === props.user.role}
+        onClick={() => actions.save({ role: actions.role })}
         type="button"
       >
         Lưu role
@@ -204,9 +264,9 @@ function UserRow(props: UserActionProps & { user: User }) {
 
       <button
         className="ghost-button compact"
-        disabled={busy}
+        disabled={actions.busy}
         onClick={() =>
-          save({
+          actions.save({
             isActive: !props.user.isActive,
           })
         }

@@ -107,11 +107,7 @@ function DuplicateResult({ result }: { result: DuplicateCandidateListResponse })
   );
 }
 
-function useVersionHistory(token: string, record: TestCaseRecord, onChanged: (record: TestCaseRecord) => void) {
-  const [versions, setVersions] = useState<TestCaseVersion[]>([]);
-  const [comparison, setComparison] = useState<VersionCompareResponse | null>(null);
-  const [fromVersion, setFromVersion] = useState(1);
-  const [toVersion, setToVersion] = useState(1);
+function useVersionActionState() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -120,6 +116,7 @@ function useVersionHistory(token: string, record: TestCaseRecord, onChanged: (re
     setLoading(true);
     setError("");
     setNotice("");
+
     try {
       await action();
     } catch (requestError) {
@@ -128,6 +125,35 @@ function useVersionHistory(token: string, record: TestCaseRecord, onChanged: (re
       setLoading(false);
     }
   }
+
+  return {
+    loading,
+    error,
+    notice,
+    setError,
+    setNotice,
+    run,
+  };
+}
+
+function resetVersionHistory(
+  setVersions: (value: TestCaseVersion[]) => void,
+  setComparison: (value: VersionCompareResponse | null) => void,
+  setError: (value: string) => void,
+  setNotice: (value: string) => void,
+) {
+  setVersions([]);
+  setComparison(null);
+  setError("");
+  setNotice("");
+}
+
+function useVersionHistory(token: string, record: TestCaseRecord, onChanged: (record: TestCaseRecord) => void) {
+  const [versions, setVersions] = useState<TestCaseVersion[]>([]);
+  const [comparison, setComparison] = useState<VersionCompareResponse | null>(null);
+  const [fromVersion, setFromVersion] = useState(1);
+  const [toVersion, setToVersion] = useState(1);
+  const { loading, error, notice, setError, setNotice, run } = useVersionActionState();
 
   async function load() {
     await run(async () => {
@@ -150,13 +176,8 @@ function useVersionHistory(token: string, record: TestCaseRecord, onChanged: (re
   }
 
   useEffect(() => {
-    queueMicrotask(() => {
-      setVersions([]);
-      setComparison(null);
-      setError("");
-      setNotice("");
-    });
-  }, [record.id]);
+    queueMicrotask(() => resetVersionHistory(setVersions, setComparison, setError, setNotice));
+  }, [record.id, setError, setNotice]);
 
   return {
     versions,

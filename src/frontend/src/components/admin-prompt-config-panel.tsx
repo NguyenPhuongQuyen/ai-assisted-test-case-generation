@@ -56,30 +56,40 @@ export function AdminPromptConfigPanel({ token, onNotice }: AdminPromptConfigPan
 
   return (
     <section className="panel">
-      <div className="panel-heading">
-        <div>
-          <div className="eyebrow">NC-09 · UC03</div>
-          <h3>Prompt / Model Config</h3>
-        </div>
-
-        {activePrompt ? <span className="status-badge">Active v{activePrompt.versionNumber}</span> : null}
-      </div>
-
+      <PromptPanelHeader activePrompt={activePrompt} />
       <StateBlock loading={loading} error={error} />
-
-      {activePrompt ? (
-        <div className="help-box">
-          <strong>{activePrompt.name}</strong>
-          <p>
-            {activePrompt.modelName} · schema {activePrompt.schemaVersion}
-          </p>
-        </div>
-      ) : null}
-
+      <ActivePromptSummary activePrompt={activePrompt} />
       <PromptForm form={form} />
-
       <PromptHistory history={history} />
     </section>
+  );
+}
+
+function PromptPanelHeader({ activePrompt }: { activePrompt: PromptConfig | null }) {
+  return (
+    <div className="panel-heading">
+      <div>
+        <div className="eyebrow">NC-09 · UC03</div>
+        <h3>Prompt / Model Config</h3>
+      </div>
+
+      {activePrompt ? <span className="status-badge">Active v{activePrompt.versionNumber}</span> : null}
+    </div>
+  );
+}
+
+function ActivePromptSummary({ activePrompt }: { activePrompt: PromptConfig | null }) {
+  if (!activePrompt) {
+    return null;
+  }
+
+  return (
+    <div className="help-box">
+      <strong>{activePrompt.name}</strong>
+      <p>
+        {activePrompt.modelName} · schema {activePrompt.schemaVersion}
+      </p>
+    </div>
   );
 }
 
@@ -90,7 +100,18 @@ interface PromptFormProps {
   onError: (value: string) => void;
 }
 
-function usePromptForm(props: PromptFormProps) {
+function getPromptErrors(name: string, systemPrompt: string, template: string) {
+  return {
+    name: name.trim().length < 2 ? "Tên cấu hình phải có ít nhất 2 ký tự." : "",
+    system: systemPrompt.trim().length < 20 ? "System Prompt phải có ít nhất 20 ký tự." : "",
+    template:
+      !template.includes("{requirement_text}") || !template.includes("{acceptance_criteria}")
+        ? "Template phải có {requirement_text} và {acceptance_criteria}."
+        : "",
+  };
+}
+
+function usePromptFields() {
   const [name, setName] = useState("Week 07 Prompt");
 
   const [systemPrompt, setSystemPrompt] = useState(
@@ -103,21 +124,33 @@ function usePromptForm(props: PromptFormProps) {
 
   const [model, setModel] = useState("gpt-5");
   const [schema, setSchema] = useState("v1");
-  const [busy, setBusy] = useState(false);
 
-  const errors = {
-    name: name.trim().length < 2 ? "Tên cấu hình phải có ít nhất 2 ký tự." : "",
-    system: systemPrompt.trim().length < 20 ? "System Prompt phải có ít nhất 20 ký tự." : "",
-    template:
-      !template.includes("{requirement_text}") || !template.includes("{acceptance_criteria}")
-        ? "Template phải có {requirement_text} và {acceptance_criteria}."
-        : "",
+  const errors = getPromptErrors(name, systemPrompt, template);
+
+  return {
+    name,
+    systemPrompt,
+    template,
+    model,
+    schema,
+    errors,
+    setName,
+    setSystemPrompt,
+    setTemplate,
+    setModel,
+    setSchema,
   };
+}
+
+type PromptFieldsState = ReturnType<typeof usePromptFields>;
+
+function usePromptSubmit(props: PromptFormProps, fields: PromptFieldsState) {
+  const [busy, setBusy] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (errors.name || errors.system || errors.template) {
+    if (fields.errors.name || fields.errors.system || fields.errors.template) {
       return;
     }
 
@@ -126,11 +159,11 @@ function usePromptForm(props: PromptFormProps) {
 
     try {
       await createPromptConfig(props.token, {
-        name,
-        systemPrompt,
-        userPromptTemplate: template,
-        modelName: model,
-        schemaVersion: schema,
+        name: fields.name,
+        systemPrompt: fields.systemPrompt,
+        userPromptTemplate: fields.template,
+        modelName: fields.model,
+        schemaVersion: fields.schema,
         maxOutputTokens: 4000,
       });
 
@@ -145,77 +178,95 @@ function usePromptForm(props: PromptFormProps) {
   }
 
   return {
-    name,
-    systemPrompt,
-    template,
-    model,
-    schema,
     busy,
-    errors,
-    setName,
-    setSystemPrompt,
-    setTemplate,
-    setModel,
-    setSchema,
     submit,
+  };
+}
+
+function usePromptForm(props: PromptFormProps) {
+  const fields = usePromptFields();
+  const submission = usePromptSubmit(props, fields);
+
+  return {
+    ...fields,
+    ...submission,
   };
 }
 
 type PromptFormState = ReturnType<typeof usePromptForm>;
 
 function PromptForm({ form }: { form: PromptFormState }) {
+  const disabled = form.busy || Boolean(form.errors.name || form.errors.system || form.errors.template);
+
   return (
     <form className="stack-form" onSubmit={form.submit}>
-      <label>
-        Name
-        <input value={form.name} onChange={(event) => form.setName(event.target.value)} minLength={2} required />
-        <FieldError message={form.errors.name} />
-      </label>
+      <PromptNameField form={form} />
+      <PromptSystemField form={form} />
+      <PromptTemplateField form={form} />
+      <PromptModelFields form={form} />
 
-      <label>
-        System Prompt
-        <textarea
-          value={form.systemPrompt}
-          onChange={(event) => form.setSystemPrompt(event.target.value)}
-          rows={4}
-          minLength={20}
-          required
-        />
-        <FieldError message={form.errors.system} />
-      </label>
-
-      <label>
-        User Prompt Template
-        <textarea
-          value={form.template}
-          onChange={(event) => form.setTemplate(event.target.value)}
-          rows={6}
-          minLength={20}
-          required
-        />
-        <FieldError message={form.errors.template} />
-      </label>
-
-      <div className="form-grid">
-        <label>
-          Model
-          <input value={form.model} onChange={(event) => form.setModel(event.target.value)} required />
-        </label>
-
-        <label>
-          Schema
-          <input value={form.schema} onChange={(event) => form.setSchema(event.target.value)} required />
-        </label>
-      </div>
-
-      <button
-        className="primary-button"
-        disabled={form.busy || Boolean(form.errors.name || form.errors.system || form.errors.template)}
-        type="submit"
-      >
+      <button className="primary-button" disabled={disabled} type="submit">
         {form.busy ? "Đang tạo..." : "Tạo version mới"}
       </button>
     </form>
+  );
+}
+
+function PromptNameField({ form }: { form: PromptFormState }) {
+  return (
+    <label>
+      Name
+      <input value={form.name} onChange={(event) => form.setName(event.target.value)} minLength={2} required />
+      <FieldError message={form.errors.name} />
+    </label>
+  );
+}
+
+function PromptSystemField({ form }: { form: PromptFormState }) {
+  return (
+    <label>
+      System Prompt
+      <textarea
+        value={form.systemPrompt}
+        onChange={(event) => form.setSystemPrompt(event.target.value)}
+        rows={4}
+        minLength={20}
+        required
+      />
+      <FieldError message={form.errors.system} />
+    </label>
+  );
+}
+
+function PromptTemplateField({ form }: { form: PromptFormState }) {
+  return (
+    <label>
+      User Prompt Template
+      <textarea
+        value={form.template}
+        onChange={(event) => form.setTemplate(event.target.value)}
+        rows={6}
+        minLength={20}
+        required
+      />
+      <FieldError message={form.errors.template} />
+    </label>
+  );
+}
+
+function PromptModelFields({ form }: { form: PromptFormState }) {
+  return (
+    <div className="form-grid">
+      <label>
+        Model
+        <input value={form.model} onChange={(event) => form.setModel(event.target.value)} required />
+      </label>
+
+      <label>
+        Schema
+        <input value={form.schema} onChange={(event) => form.setSchema(event.target.value)} required />
+      </label>
+    </div>
   );
 }
 

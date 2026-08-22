@@ -59,25 +59,16 @@ function useEditorState(record: TestCaseRecord | null): EditorState {
   return { summary, steps, expected, priority, note, setSummary, setSteps, setExpected, setPriority, setNote };
 }
 
-export function TestCaseEditor({ token, user, record, onChanged }: TestCaseEditorProps) {
-  const editor = useEditorState(record);
+function useEditorRequestState(onChanged: TestCaseEditorProps["onChanged"]) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const currentRecord = record;
-  if (!currentRecord)
-    return (
-      <section className="panel">
-        <StateBlock empty emptyText="Chọn một test case để review." />
-      </section>
-    );
-  const activeRecord: TestCaseRecord = currentRecord;
-  const errors = getEditorErrors(editor);
-  const formInvalid = Object.values(errors).some(Boolean);
+
   async function run(action: () => Promise<TestCaseRecord>, successText: string) {
     setBusy(true);
     setError("");
     setNotice("");
+
     try {
       const updated = await action();
       onChanged(updated);
@@ -88,8 +79,33 @@ export function TestCaseEditor({ token, user, record, onChanged }: TestCaseEdito
       setBusy(false);
     }
   }
+
+  return {
+    busy,
+    error,
+    notice,
+    run,
+  };
+}
+
+export function TestCaseEditor({ token, user, record, onChanged }: TestCaseEditorProps) {
+  const editor = useEditorState(record);
+  const request = useEditorRequestState(onChanged);
+
+  if (!record) {
+    return (
+      <section className="panel">
+        <StateBlock empty emptyText="Chọn một test case để review." />
+      </section>
+    );
+  }
+
+  const activeRecord: TestCaseRecord = record;
+  const errors = getEditorErrors(editor);
+  const formInvalid = Object.values(errors).some(Boolean);
+
   async function save() {
-    await run(
+    await request.run(
       () =>
         updateTestCase(token, activeRecord, {
           summary: editor.summary,
@@ -101,16 +117,21 @@ export function TestCaseEditor({ token, user, record, onChanged }: TestCaseEdito
       "Đã lưu phiên bản chỉnh sửa.",
     );
   }
+
   async function transition(action: "review" | "approve" | "request-fix" | "reject") {
-    await run(() => transitionTestCase(token, activeRecord, action, editor.note), `Đã chuyển trạng thái: ${action}.`);
+    await request.run(
+      () => transitionTestCase(token, activeRecord, action, editor.note),
+      `Đã chuyển trạng thái: ${action}.`,
+    );
   }
+
   return (
     <section className="panel editor-panel">
       <EditorHeader record={activeRecord} />
       <EditorFields editor={editor} errors={errors} />
-      <EditorActions user={user} busy={busy} invalid={formInvalid} onSave={save} onTransition={transition} />
-      {error ? <div className="state state-error">{error}</div> : null}
-      {notice ? <div className="state state-success">{notice}</div> : null}
+      <EditorActions user={user} busy={request.busy} invalid={formInvalid} onSave={save} onTransition={transition} />
+      {request.error ? <div className="state state-error">{request.error}</div> : null}
+      {request.notice ? <div className="state state-success">{request.notice}</div> : null}
     </section>
   );
 }

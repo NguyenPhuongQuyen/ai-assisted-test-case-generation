@@ -144,96 +144,176 @@ interface RequirementPanelProps {
   generation: ReturnType<typeof useGeneration>;
 }
 
-function RequirementPanel({
-  modules,
-  moduleId,
-  setModuleId,
-  loading,
-  moduleError,
-  form,
-  generation,
-}: RequirementPanelProps) {
-  const contentError =
-    form.content.length > 0 && form.content.trim().length < 20 ? "Requirement phải có ít nhất 20 ký tự." : "";
+function getRequirementContentError(content: string) {
+  if (content.length === 0 || content.trim().length >= 20) {
+    return "";
+  }
+
+  return "Requirement phải có ít nhất 20 ký tự.";
+}
+
+function RequirementPanel(props: RequirementPanelProps) {
+  const contentError = getRequirementContentError(props.form.content);
+
   return (
     <section className="panel">
-      <div className="panel-heading">
-        <div>
-          <div className="eyebrow">NC-01 · YC-01</div>
-          <h3>Nhập đặc tả yêu cầu</h3>
-        </div>
-        {form.current ? (
-          <span className="status-badge">
-            REQ #{form.current.id} · v{form.current.lock_version}
-          </span>
-        ) : null}
-      </div>
+      <RequirementHeader form={props.form} />
+
       <StateBlock
-        loading={loading}
-        error={moduleError || form.error}
-        empty={!loading && modules.length === 0}
+        loading={props.loading}
+        error={props.moduleError || props.form.error}
+        empty={!props.loading && props.modules.length === 0}
         emptyText="Chưa có module. Nhờ Manager tạo module trước."
       />
-      {!loading && modules.length > 0 ? (
-        <form className="stack-form" onSubmit={form.save}>
-          <label>
-            Module
-            <select
-              value={moduleId}
-              onChange={(event) => setModuleId(Number(event.target.value))}
-              disabled={Boolean(form.current)}
-            >
-              {modules.map((module) => (
-                <option key={module.id} value={module.id}>
-                  {module.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Requirement / SRS
-            <textarea
-              value={form.content}
-              onChange={(event) => form.setContent(event.target.value)}
-              minLength={20}
-              maxLength={50000}
-              rows={9}
-              required
-            />
-            <FieldError message={contentError} />
-          </label>
-          <label>
-            Acceptance Criteria
-            <textarea
-              value={form.criteria}
-              onChange={(event) => form.setCriteria(event.target.value)}
-              maxLength={20000}
-              rows={5}
-            />
-          </label>
-          <div className="button-row">
-            <button
-              className="primary-button"
-              disabled={form.saving || Boolean(contentError) || form.content.trim().length < 20}
-              type="submit"
-            >
-              {form.current ? "Cập nhật Requirement" : "Lưu Requirement"}
-            </button>
-            {form.current ? (
-              <button
-                className="secondary-button"
-                disabled={generation.busy}
-                onClick={() => void generation.generate()}
-                type="button"
-              >
-                AI Sinh Test Case
-              </button>
-            ) : null}
-          </div>
-          {form.notice ? <div className="state state-success">{form.notice}</div> : null}
-        </form>
+
+      {!props.loading && props.modules.length > 0 ? (
+        <RequirementForm
+          modules={props.modules}
+          moduleId={props.moduleId}
+          setModuleId={props.setModuleId}
+          form={props.form}
+          generation={props.generation}
+          contentError={contentError}
+        />
       ) : null}
     </section>
+  );
+}
+
+function RequirementHeader({ form }: { form: ReturnType<typeof useRequirementForm> }) {
+  return (
+    <div className="panel-heading">
+      <div>
+        <div className="eyebrow">NC-01 · YC-01</div>
+        <h3>Nhập đặc tả yêu cầu</h3>
+      </div>
+
+      {form.current ? (
+        <span className="status-badge">
+          REQ #{form.current.id} · v{form.current.lock_version}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+interface RequirementFormProps {
+  modules: ModuleRecord[];
+  moduleId: number;
+  setModuleId: (id: number) => void;
+  form: ReturnType<typeof useRequirementForm>;
+  generation: ReturnType<typeof useGeneration>;
+  contentError: string;
+}
+
+function RequirementForm(props: RequirementFormProps) {
+  return (
+    <form className="stack-form" onSubmit={props.form.save}>
+      <RequirementModuleField
+        modules={props.modules}
+        moduleId={props.moduleId}
+        setModuleId={props.setModuleId}
+        disabled={Boolean(props.form.current)}
+      />
+
+      <RequirementTextFields form={props.form} contentError={props.contentError} />
+
+      <RequirementActions form={props.form} generation={props.generation} contentError={props.contentError} />
+
+      {props.form.notice ? <div className="state state-success">{props.form.notice}</div> : null}
+    </form>
+  );
+}
+
+interface RequirementModuleFieldProps {
+  modules: ModuleRecord[];
+  moduleId: number;
+  setModuleId: (id: number) => void;
+  disabled: boolean;
+}
+
+function RequirementModuleField(props: RequirementModuleFieldProps) {
+  return (
+    <label>
+      Module
+      <select
+        value={props.moduleId}
+        onChange={(event) => props.setModuleId(Number(event.target.value))}
+        disabled={props.disabled}
+      >
+        {props.modules.map((module) => (
+          <option key={module.id} value={module.id}>
+            {module.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function RequirementTextFields({
+  form,
+  contentError,
+}: {
+  form: ReturnType<typeof useRequirementForm>;
+  contentError: string;
+}) {
+  return (
+    <>
+      <label>
+        Requirement / SRS
+        <textarea
+          value={form.content}
+          onChange={(event) => form.setContent(event.target.value)}
+          minLength={20}
+          maxLength={50000}
+          rows={9}
+          required
+        />
+        <FieldError message={contentError} />
+      </label>
+
+      <label>
+        Acceptance Criteria
+        <textarea
+          value={form.criteria}
+          onChange={(event) => form.setCriteria(event.target.value)}
+          maxLength={20000}
+          rows={5}
+        />
+      </label>
+    </>
+  );
+}
+
+function RequirementActions({
+  form,
+  generation,
+  contentError,
+}: {
+  form: ReturnType<typeof useRequirementForm>;
+  generation: ReturnType<typeof useGeneration>;
+  contentError: string;
+}) {
+  const saveDisabled = form.saving || Boolean(contentError) || form.content.trim().length < 20;
+
+  return (
+    <div className="button-row">
+      <button className="primary-button" disabled={saveDisabled} type="submit">
+        {form.current ? "Cập nhật Requirement" : "Lưu Requirement"}
+      </button>
+
+      {form.current ? (
+        <button
+          className="secondary-button"
+          disabled={generation.busy}
+          onClick={() => void generation.generate()}
+          type="button"
+        >
+          AI Sinh Test Case
+        </button>
+      ) : null}
+    </div>
   );
 }
 

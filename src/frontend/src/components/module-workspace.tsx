@@ -122,59 +122,93 @@ interface ManagementProps {
   rename: () => Promise<void>;
 }
 
-function ManagementPanel({ user, list, name, setName, nameError, busy, create, rename }: ManagementProps) {
-  const canManage = user.role === "manager";
+function ManagementPanel(props: ManagementProps) {
+  const canManage = props.user.role === "manager";
+
   return (
     <section className="panel">
-      <div className="panel-heading">
-        <div>
-          <div className="eyebrow">NC-06</div>
-          <h3>Tổ chức theo Module</h3>
-        </div>
-      </div>
+      <ManagementHeader />
+
       <StateBlock
-        loading={list.loading}
-        error={list.error}
-        empty={!list.loading && list.modules.length === 0}
+        loading={props.list.loading}
+        error={props.list.error}
+        empty={!props.list.loading && props.list.modules.length === 0}
         emptyText="Chưa có module."
       />
-      {list.modules.length > 0 ? (
-        <label>
-          Module
-          <select value={list.selectedId} onChange={(event) => list.setSelectedId(Number(event.target.value))}>
-            {list.modules.map((module) => (
-              <option key={module.id} value={module.id}>
-                {module.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : null}
+
+      <ManagementModuleSelect list={props.list} />
+
       {canManage ? (
-        <form className="stack-form compact-form" onSubmit={create}>
-          <label>
-            Tên module
-            <input value={name} onChange={(event) => setName(event.target.value)} minLength={2} maxLength={150} />
-            <FieldError message={nameError} />
-          </label>
-          <div className="button-row">
-            <button className="primary-button" disabled={busy || !name.trim() || Boolean(nameError)} type="submit">
-              Tạo module
-            </button>
-            <button
-              className="secondary-button"
-              disabled={busy || !list.selectedId || !name.trim() || Boolean(nameError)}
-              onClick={() => void rename()}
-              type="button"
-            >
-              Đổi tên module đang chọn
-            </button>
-          </div>
-        </form>
+        <ManagementForm
+          list={props.list}
+          name={props.name}
+          setName={props.setName}
+          nameError={props.nameError}
+          busy={props.busy}
+          create={props.create}
+          rename={props.rename}
+        />
       ) : (
         <div className="help-box">Chỉ Manager được tạo/sửa module và quản lý tags.</div>
       )}
     </section>
+  );
+}
+
+function ManagementHeader() {
+  return (
+    <div className="panel-heading">
+      <div>
+        <div className="eyebrow">NC-06</div>
+        <h3>Tổ chức theo Module</h3>
+      </div>
+    </div>
+  );
+}
+
+function ManagementModuleSelect({ list }: { list: ReturnType<typeof useModuleList> }) {
+  if (list.modules.length === 0) return null;
+
+  return (
+    <label>
+      Module
+      <select value={list.selectedId} onChange={(event) => list.setSelectedId(Number(event.target.value))}>
+        {list.modules.map((module) => (
+          <option key={module.id} value={module.id}>
+            {module.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function ManagementForm({ list, name, setName, nameError, busy, create, rename }: Omit<ManagementProps, "user">) {
+  const invalid = busy || !name.trim() || Boolean(nameError);
+
+  return (
+    <form className="stack-form compact-form" onSubmit={create}>
+      <label>
+        Tên module
+        <input value={name} onChange={(event) => setName(event.target.value)} minLength={2} maxLength={150} />
+        <FieldError message={nameError} />
+      </label>
+
+      <div className="button-row">
+        <button className="primary-button" disabled={invalid} type="submit">
+          Tạo module
+        </button>
+
+        <button
+          className="secondary-button"
+          disabled={invalid || !list.selectedId}
+          onClick={() => void rename()}
+          type="button"
+        >
+          Đổi tên module đang chọn
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -187,60 +221,143 @@ interface CoverageProps {
   action: ReturnType<typeof useActionState>;
 }
 
-function CoveragePanel({ token, user, moduleId, coverage, setCoverage, action }: CoverageProps) {
-  const canCoverage = user.role === "qa" || user.role === "manager";
+function useCoverageActions(props: CoverageProps) {
   async function load() {
-    if (moduleId) await action.run(async () => setCoverage(await getCoverage(token, moduleId)));
+    if (!props.moduleId) return;
+
+    await props.action.run(async () => props.setCoverage(await getCoverage(props.token, props.moduleId)));
   }
+
   async function exportFile(format: "csv" | "xlsx") {
-    if (!moduleId) return;
-    await action.run(async () => {
-      await exportTestCases(token, moduleId, format);
-      action.setNotice(`Đã tạo file ${format.toUpperCase()} từ các test case APPROVED.`);
+    if (!props.moduleId) return;
+
+    await props.action.run(async () => {
+      await exportTestCases(props.token, props.moduleId, format);
+
+      props.action.setNotice(`Đã tạo file ${format.toUpperCase()} từ các test case APPROVED.`);
     });
   }
+
+  return {
+    load,
+    exportFile,
+  };
+}
+
+function useCoveragePanelActions(props: CoverageProps) {
+  async function load() {
+    if (!props.moduleId) return;
+
+    await props.action.run(async () => props.setCoverage(await getCoverage(props.token, props.moduleId)));
+  }
+
+  async function exportFile(format: "csv" | "xlsx") {
+    if (!props.moduleId) return;
+
+    await props.action.run(async () => {
+      await exportTestCases(props.token, props.moduleId, format);
+
+      props.action.setNotice(`Đã tạo file ${format.toUpperCase()} từ các test case APPROVED.`);
+    });
+  }
+
+  return {
+    load,
+    exportFile,
+  };
+}
+
+function CoveragePanel(props: CoverageProps) {
+  const canCoverage = props.user.role === "qa" || props.user.role === "manager";
+
+  const actions = useCoveragePanelActions(props);
+
   return (
     <section className="panel">
-      <div className="panel-heading">
-        <div>
-          <div className="eyebrow">NC-07 · NC-12</div>
-          <h3>Coverage & Export</h3>
-        </div>
-      </div>
-      <div className="button-row wrap-row">
-        <button
-          className="secondary-button"
-          disabled={action.busy || !moduleId || !canCoverage}
-          onClick={() => void load()}
-          type="button"
-        >
-          Xem coverage
-        </button>
-        <button
-          className="secondary-button"
-          disabled={action.busy || !moduleId || user.role === "admin"}
-          onClick={() => void exportFile("csv")}
-          type="button"
-        >
-          Export CSV
-        </button>
-        <button
-          className="secondary-button"
-          disabled={action.busy || !moduleId || user.role === "admin"}
-          onClick={() => void exportFile("xlsx")}
-          type="button"
-        >
-          Export XLSX
-        </button>
-      </div>
-      {coverage ? (
-        <CoverageCard coverage={coverage} />
+      <CoverageHeader />
+
+      <CoverageActionButtons
+        user={props.user}
+        moduleId={props.moduleId}
+        busy={props.action.busy}
+        canCoverage={canCoverage}
+        onLoad={actions.load}
+        onExport={actions.exportFile}
+      />
+
+      {props.coverage ? (
+        <CoverageCard coverage={props.coverage} />
       ) : (
         <StateBlock empty emptyText="Chọn module và bấm Xem coverage." />
       )}
-      {action.error ? <div className="state state-error">{action.error}</div> : null}
-      {action.notice ? <div className="state state-success">{action.notice}</div> : null}
+
+      <CoverageMessages action={props.action} />
     </section>
+  );
+}
+
+function CoverageHeader() {
+  return (
+    <div className="panel-heading">
+      <div>
+        <div className="eyebrow">NC-07 · NC-12</div>
+        <h3>Coverage & Export</h3>
+      </div>
+    </div>
+  );
+}
+
+interface CoverageActionButtonsProps {
+  user: User;
+  moduleId: number;
+  busy: boolean;
+  canCoverage: boolean;
+  onLoad: () => Promise<void>;
+  onExport: (format: "csv" | "xlsx") => Promise<void>;
+}
+
+function CoverageActionButtons(props: CoverageActionButtonsProps) {
+  const exportDisabled = props.busy || !props.moduleId || props.user.role === "admin";
+
+  return (
+    <div className="button-row wrap-row">
+      <button
+        className="secondary-button"
+        disabled={props.busy || !props.moduleId || !props.canCoverage}
+        onClick={() => void props.onLoad()}
+        type="button"
+      >
+        Xem coverage
+      </button>
+
+      <button
+        className="secondary-button"
+        disabled={exportDisabled}
+        onClick={() => void props.onExport("csv")}
+        type="button"
+      >
+        Export CSV
+      </button>
+
+      <button
+        className="secondary-button"
+        disabled={exportDisabled}
+        onClick={() => void props.onExport("xlsx")}
+        type="button"
+      >
+        Export XLSX
+      </button>
+    </div>
+  );
+}
+
+function CoverageMessages({ action }: { action: ReturnType<typeof useActionState> }) {
+  return (
+    <>
+      {action.error ? <div className="state state-error">{action.error}</div> : null}
+
+      {action.notice ? <div className="state state-success">{action.notice}</div> : null}
+    </>
   );
 }
 

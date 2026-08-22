@@ -8,7 +8,7 @@ import { createUser, listUsers, updateUser } from "@/services/admin";
 import { ApiError } from "@/services/api";
 import type { User, UserRole } from "@/types/api";
 
-import { FieldError, StateBlock } from "./StateBlock";
+import { FieldError, StateBlock } from "./state-block";
 
 interface AdminUserManagementPanelProps {
   token: string;

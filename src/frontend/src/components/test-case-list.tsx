@@ -2,7 +2,7 @@
 
 // Source assistance: OpenAI ChatGPT, 2026-08-22 (AI-05).
 import type { TestCaseRecord, TestCaseStatus } from "@/types/api";
-import { StateBlock } from "./StateBlock";
+import { StateBlock } from "./state-block";
 
 interface TestCaseListProps {
   items: TestCaseRecord[];

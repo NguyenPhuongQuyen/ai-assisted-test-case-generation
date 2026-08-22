@@ -6,9 +6,9 @@ import { useState } from "react";
 
 import type { User } from "@/types/api";
 
-import { AdminPromptConfigPanel } from "./AdminPromptConfigPanel";
-import { AdminUserManagementPanel } from "./AdminUserManagementPanel";
-import { StateBlock } from "./StateBlock";
+import { AdminPromptConfigPanel } from "./admin-prompt-config-panel";
+import { AdminUserManagementPanel } from "./admin-user-management-panel";
+import { StateBlock } from "./state-block";
 
 interface AdminWorkspaceProps {
   token: string;

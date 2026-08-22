@@ -8,7 +8,7 @@ import { listModules } from "@/services/modules";
 import { createRequirement, updateRequirement } from "@/services/requirements";
 import { generateTestCases, getGenerationJob } from "@/services/testcases";
 import type { GenerationJob, ModuleRecord, RequirementRecord, User } from "@/types/api";
-import { FieldError, StateBlock } from "./StateBlock";
+import { FieldError, StateBlock } from "./state-block";
 
 interface RequirementWorkspaceProps {
   token: string;

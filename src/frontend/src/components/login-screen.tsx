@@ -6,7 +6,7 @@ import { FormEvent, useState } from "react";
 import { login } from "@/services/auth";
 import { ApiError, saveToken } from "@/services/api";
 import type { AuthResponse } from "@/types/api";
-import { FieldError } from "./StateBlock";
+import { FieldError } from "./state-block";
 
 interface LoginScreenProps {
   onLogin: (session: AuthResponse) => void;

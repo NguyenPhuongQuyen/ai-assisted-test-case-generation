@@ -6,9 +6,9 @@ import { useCallback, useEffect, useState } from "react";
 import { ApiError } from "@/services/api";
 import { listTestCases } from "@/services/testcases";
 import type { TestCaseRecord, TestCaseStatus, User } from "@/types/api";
-import { TestCaseEditor } from "./TestCaseEditor";
-import { TestCaseInsights } from "./TestCaseInsights";
-import { TestCaseList } from "./TestCaseList";
+import { TestCaseEditor } from "./test-case-editor";
+import { TestCaseInsights } from "./test-case-insights";
+import { TestCaseList } from "./test-case-list";
 
 interface TestCaseWorkspaceProps {
   token: string;

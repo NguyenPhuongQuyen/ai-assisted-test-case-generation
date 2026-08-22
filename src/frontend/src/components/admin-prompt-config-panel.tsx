@@ -8,7 +8,7 @@ import { createPromptConfig, getActivePromptConfig, listPromptConfigs } from "@/
 import { ApiError } from "@/services/api";
 import type { PromptConfig } from "@/types/api";
 
-import { FieldError, StateBlock } from "./StateBlock";
+import { FieldError, StateBlock } from "./state-block";
 
 interface AdminPromptConfigPanelProps {
   token: string;

@@ -7,7 +7,7 @@ import { ApiError } from "@/services/api";
 import { createModule, getCoverage, listModules, updateModule } from "@/services/modules";
 import { exportTestCases } from "@/services/testcases";
 import type { CoverageResponse, ModuleRecord, User } from "@/types/api";
-import { FieldError, StateBlock } from "./StateBlock";
+import { FieldError, StateBlock } from "./state-block";
 
 interface ModuleWorkspaceProps {
   token: string;

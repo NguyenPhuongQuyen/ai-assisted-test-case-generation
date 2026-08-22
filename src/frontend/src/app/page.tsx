@@ -3,12 +3,12 @@
 // Source assistance: OpenAI ChatGPT, 2026-08-22 (AI-05).
 import { useEffect, useState } from "react";
 
-import { AdminWorkspace } from "@/components/AdminWorkspace";
-import { AppShell, type WorkspaceKey } from "@/components/AppShell";
-import { LoginScreen } from "@/components/LoginScreen";
-import { ModuleWorkspace } from "@/components/ModuleWorkspace";
-import { RequirementWorkspace } from "@/components/RequirementWorkspace";
-import { TestCaseWorkspace } from "@/components/TestCaseWorkspace";
+import { AdminWorkspace } from "@/components/admin-workspace";
+import { AppShell, type WorkspaceKey } from "@/components/app-shell";
+import { LoginScreen } from "@/components/login-screen";
+import { ModuleWorkspace } from "@/components/module-workspace";
+import { RequirementWorkspace } from "@/components/requirement-workspace";
+import { TestCaseWorkspace } from "@/components/test-case-workspace";
 import { clearToken, readToken } from "@/services/api";
 import type { AuthResponse, User } from "@/types/api";
 

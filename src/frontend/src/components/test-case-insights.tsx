@@ -13,7 +13,7 @@ import type {
   User,
   VersionCompareResponse,
 } from "@/types/api";
-import { StateBlock } from "./StateBlock";
+import { StateBlock } from "./state-block";
 
 interface TestCaseInsightsProps {
   token: string;

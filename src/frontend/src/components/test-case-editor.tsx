@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { ApiError } from "@/services/api";
 import { transitionTestCase, updateTestCase } from "@/services/testcases";
 import type { Priority, TestCaseRecord, User } from "@/types/api";
-import { FieldError, StateBlock } from "./StateBlock";
+import { FieldError, StateBlock } from "./state-block";
 
 interface TestCaseEditorProps {
   token: string;

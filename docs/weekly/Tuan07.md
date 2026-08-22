@@ -64,7 +64,7 @@
 - [x] Có authorization test cho các role theo TC-12.
 - [x] README được cập nhật khi cách chạy thay đổi.
 - [x] Xác nhận frontend lint/build PASS trên máy local sau khi copy code.
-- [ ] Xác nhận CI xanh trên GitHub trước khi nộp PR.
+- [x] Xác nhận CI xanh trên GitHub trước khi nộp PR.
 
 ## 5. Còn thiếu / giới hạn đã biết
 

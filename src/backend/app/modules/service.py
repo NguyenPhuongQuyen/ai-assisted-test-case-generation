@@ -1,5 +1,6 @@
 # Source assistance: OpenAI ChatGPT, 2026-08-21 (AI-05).
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit.models import AuditLog
@@ -41,7 +42,15 @@ class ModuleService:
         await self._validate_parent(parent_id=payload.parent_id, module_id=None)
         await self._reject_duplicate_name(payload.name, payload.parent_id, exclude_id=None)
         module = Module(name=payload.name, parent_id=payload.parent_id, created_by=current_user.id)
-        await self._modules.create(module)
+        try:
+            await self._modules.create(module)
+        except IntegrityError as exc:
+            await self._session.rollback()
+            raise AppError(
+                ErrorCode.CONFLICT,
+                "Tên module đã tồn tại trong cùng cấp.",
+                409,
+            ) from exc
         await self._record_module_audit(AuditAction.CREATE_MODULE, module, current_user, before_state=None)
         await self._session.commit()
         return module
@@ -65,7 +74,15 @@ class ModuleService:
         before = self._module_state(module)
         module.name = new_name
         module.parent_id = new_parent_id
-        await self._modules.save(module)
+        try:
+            await self._modules.save(module)
+        except IntegrityError as exc:
+            await self._session.rollback()
+            raise AppError(
+                ErrorCode.CONFLICT,
+                "Tên module đã tồn tại trong cùng cấp.",
+                409,
+            ) from exc
         await self._record_module_audit(AuditAction.UPDATE_MODULE, module, current_user, before_state=before)
         await self._session.commit()
         return module

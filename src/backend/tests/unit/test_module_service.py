@@ -12,10 +12,14 @@ from app.modules.coverage_repository import ModuleCoverageRecord
 from app.modules.schemas import ModuleCreateRequest, ModuleUpdateRequest
 from app.modules.schemas import TestCaseTagUpdateRequest as TagUpdateRequest
 from app.modules.service import ModuleService
+from sqlalchemy.exc import IntegrityError
 
 
 def build_service(*, module=None, duplicate: bool = False, coverage=None, test_case=None):
-    session = SimpleNamespace(commit=AsyncMock())
+    session = SimpleNamespace(
+        commit=AsyncMock(),
+        rollback=AsyncMock(),
+    )
     modules = SimpleNamespace(
         get_by_id=AsyncMock(return_value=module),
         exists_with_name=AsyncMock(return_value=duplicate),
@@ -76,6 +80,27 @@ async def test_duplicate_sibling_name_returns_conflict() -> None:
     assert exc_info.value.code == ErrorCode.CONFLICT
     modules.create.assert_not_awaited()
     session.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_database_duplicate_module_conflict_is_mapped_to_409() -> None:
+    service, session, modules, _, _, audits = build_service()
+    modules.create.side_effect = IntegrityError(
+        "INSERT INTO modules",
+        {},
+        Exception("duplicate key"),
+    )
+
+    with pytest.raises(AppError) as exc_info:
+        await service.create_module(
+            ModuleCreateRequest(name="Checkout"),
+            CurrentUser(id=2, role=UserRole.MANAGER),
+        )
+
+    assert exc_info.value.code == ErrorCode.CONFLICT
+    session.rollback.assert_awaited_once()
+    session.commit.assert_not_awaited()
+    audits.create.assert_not_awaited()
 
 
 @pytest.mark.asyncio

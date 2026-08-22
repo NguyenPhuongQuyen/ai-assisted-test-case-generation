@@ -240,7 +240,16 @@ function VersionControls({ state }: { state: VersionState }) {
         {state.versions.map((version) => (
           <div className="version-row" key={version.versionNumber}>
             <span>
-              v{version.versionNumber} · {new Date(version.createdAt).toLocaleString("vi-VN")}
+              v{version.versionNumber} ·{" "}
+              {new Date(version.createdAt).toLocaleString("vi-VN", {
+                timeZone: "Asia/Ho_Chi_Minh",
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              })}
             </span>
             <button
               className="ghost-button compact"

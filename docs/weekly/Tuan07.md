@@ -13,7 +13,7 @@
 - Bổ sung NC-09 versioned Prompt/Model Configuration; generation lấy active config thay vì prompt nghiệp vụ hardcode.
 - Bổ sung NC-08 list/compare/restore Test Case version.
 - Bổ sung BR-08: Requirement thay đổi làm Test Case liên quan cần review lại.
-- RabbitMQ/Celery đã chạy local; pgvector đã cài cho PostgreSQL. Trước gói hoàn thiện cuối, migration đã xác nhận ở `0008_nc08_version_restore`. Gói cuối thêm `0009_nc10_user_admin`.
+- RabbitMQ/Celery đã chạy local; pgvector đã cài cho PostgreSQL. Chuỗi migration Tuần 07 đã được cập nhật qua `0009_nc10_user_admin` và hiện xác nhận ở `0010_module_name_unique (head)`.
 
 ### Frontend Tuần 07
 
@@ -37,16 +37,16 @@
 
 - Backend Ruff check: PASS.
 - Backend Ruff format check: PASS.
-- Backend Unit Test: **69 passed** trên local tại commit `d3e7f71`. Gói hoàn thiện cuối bổ sung 4 test NC-10; cần chạy lại full suite trước PR.
-- Alembic đã xác nhận `0009_nc10_user_admin (head)`.
+- Backend Unit Test: **74 passed** trên local sau gói hoàn thiện Tuần 07.
+- Alembic đã xác nhận `0010_module_name_unique (head)` sau migration DB-13 chống trùng tên Module cùng cấp.
 - Swagger đã hiển thị các endpoint Module, Prompt Config, Requirement Update, Test Case Version/Restore và các endpoint HITL.
 - RabbitMQ/Celery worker đã kết nối local ở các bước kiểm thử trước trong Tuần 07.
 - pgvector đã được build/install vào PostgreSQL 18 local và migration `0004` chạy thành công.
 
 ## 3. Cần chạy lại trước khi mở PR
 
-- `ruff check`, `ruff format --check`, `pytest` sau khi copy gói hoàn thiện Tuần 07.
-- Frontend: `npm run format:check`, `npm run lint`, `npm run build`.
+- [x] Backend `ruff check` và full `pytest`: **74 passed**.
+- [x] Frontend `npm run format:check`, `npm run lint` và `npm run build`: PASS.
 - Kiểm nhanh UI thật với ba role QA / Manager / Admin.
 - GitHub Actions phải xanh ở commit cuối.
 - Không ghi PASS cho manual test chưa chạy; kết quả lần chạy đầu toàn bộ test case bắt buộc theo lộ trình bắt đầu ở Tuần 08.
@@ -63,7 +63,7 @@
 - [x] Có API test specification và `tuan07.http` theo TC-09.
 - [x] Có authorization test cho các role theo TC-12.
 - [x] README được cập nhật khi cách chạy thay đổi.
-- [ ] Xác nhận frontend lint/build PASS trên máy local sau khi copy code.
+- [x] Xác nhận frontend lint/build PASS trên máy local sau khi copy code.
 - [ ] Xác nhận CI xanh trên GitHub trước khi nộp PR.
 
 ## 5. Còn thiếu / giới hạn đã biết
@@ -74,7 +74,7 @@
 
 ## 6. Câu hỏi cho GVHD
 
-Tuần 07 em đã hoàn thiện frontend cho các luồng chính, bổ sung HITL review, pgvector duplicate detection, module/coverage, export, prompt configuration và version restore. Test case đã được cập nhật theo TC-07 và ma trận truy vết TC-08; backend local hiện có 73 Unit Test PASS.
+Tuần 07 em đã hoàn thiện frontend cho các luồng chính, bổ sung HITL review, pgvector duplicate detection, module/coverage, export, prompt configuration và version restore. Test case đã được cập nhật theo TC-07 và ma trận truy vết TC-08; backend local hiện có 74 Unit Test PASS.
 
 ## Minh chứng triển khai Tuần 07
 

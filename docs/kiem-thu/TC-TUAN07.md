@@ -6,10 +6,10 @@ Tuần 07 tập trung thiết kế test case phủ các use case chính, Human-i
 
 Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 
-- Backend Unit Test: `73 passed`.
-- Tested commit: `06675fe`.
+- Backend Unit Test: `74 passed`.
+- Tested commit: `aafea6e`.
 - Ruff check / format: PASS.
-- Alembic: `0009_nc10_user_admin (head)`.
+- Alembic: `0010_module_name_unique (head)`.
 
 ## 2. TC-07 - Kỹ thuật kiểm thử sử dụng
 
@@ -29,8 +29,8 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 > Các bảng phía dưới là bản đặc tả chi tiết dùng để đáp ứng TC-03/TC-04/TC-05.
 > Các bảng ở các mục tiếp theo vẫn được giữ làm catalog theo use case và kỹ thuật kiểm thử.
 >
-> Kết quả `PASS - Unit Test` dưới đây dựa trên lần chạy `73 passed` ngày 22/08/2026
-> tại commit `06675fe`. Test manual chưa thực thi không được tự đổi thành PASS.
+> Kết quả `PASS - Unit Test` dưới đây dựa trên lần chạy `74 passed` ngày 23/08/2026
+> trên source commit `aafea6e`. Test manual chưa thực thi không được tự đổi thành PASS.
 
 ### TC-REQ-012 — Requirement dưới min boundary
 
@@ -42,7 +42,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Tiền điều kiện | User QA đã đăng nhập; có quyền tạo/cập nhật Requirement. |
 | Dữ liệu đầu vào | `content` có đúng 19 ký tự; các field còn lại hợp lệ. |
 | Các bước | 1. Mở form Requirement. 2. Nhập content 19 ký tự. 3. Nhập các field bắt buộc còn lại. 4. Bấm lưu. |
-| Kết quả mong đợi | Backend trả HTTP 422; Requirement không được lưu. |
+| Kết quả mong đợi | Backend trả HTTP 400; Requirement không được lưu. |
 | Kết quả thực tế | Chưa chạy manual. |
 | Trạng thái | Chưa chạy manual; thiết kế 22/08/2026. |
 
@@ -86,7 +86,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Đăng nhập QA A. 2. Gửi request cập nhật Requirement của QA B. 3. Quan sát response và database. |
 | Kết quả mong đợi | HTTP 403 `FORBIDDEN_RECORD`; dữ liệu Requirement không thay đổi. |
 | Kết quả thực tế | Unit Test PASS. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-REQ-016 — Optimistic lock conflict
 
@@ -100,7 +100,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Đọc Requirement. 2. Làm record thay đổi ở phiên khác. 3. Gửi update với lock_version cũ. |
 | Kết quả mong đợi | HTTP 409 CONFLICT; không ghi đè dữ liệu mới. |
 | Kết quả thực tế | Unit Test PASS. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-REQ-017 — BR-08 Requirement thay đổi
 
@@ -114,7 +114,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Mở Requirement. 2. Chỉnh nội dung. 3. Lưu. 4. Đọc lại Test Case liên quan và version/audit. |
 | Kết quả mong đợi | Requirement tạo version mới; Test Case liên quan chuyển `NEEDS_FIX`; có audit/version tương ứng. |
 | Kết quả thực tế | Unit Test PASS. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-GEN-004 — Submit AI generation job
 
@@ -128,7 +128,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Gửi yêu cầu generation. 2. Quan sát HTTP response. 3. Đọc generation job. |
 | Kết quả mong đợi | HTTP 202; job được tạo trạng thái QUEUED; worker xử lý bất đồng bộ. |
 | Kết quả thực tế | Unit Test PASS; provider thật chưa xác nhận do API key local HTTP 401. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`; manual provider chưa chạy thành công. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`; manual provider chưa chạy thành công. |
 
 ### TC-GEN-005 — Generation record-level authorization
 
@@ -142,7 +142,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Đăng nhập QA A. 2. Gửi yêu cầu generation cho Requirement của QA B. |
 | Kết quả mong đợi | HTTP 403; không tạo/enqueue generation job. |
 | Kết quả thực tế | Unit Test PASS. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-GEN-006 — Provider/AppError được bảo toàn
 
@@ -156,7 +156,21 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Khởi chạy generation task. 2. Mock provider lỗi. 3. Đọc trạng thái job sau xử lý. |
 | Kết quả mong đợi | Job FAILED; error code giữ `AI_PROVIDER_ERROR`, không đổi thành lỗi không xác định. |
 | Kết quả thực tế | Regression Unit Test PASS. |
-| Trạng thái | PASS - Regression Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Regression Test - 23/08/2026 - commit `aafea6e`. |
+
+### TC-GEN-007 — Structured Output sai schema
+
+| Trường | Nội dung |
+|---|---|
+| Mã TC | TC-GEN-007 |
+| Chức năng / UC | UC06 - AI Generation / BR-04 |
+| Mục tiêu | Chứng minh Structured Output của AI bị từ chối nếu không đúng schema bắt buộc. |
+| Tiền điều kiện | Provider được mock; schema `GeneratedTestCaseBatch` đang được sử dụng. |
+| Dữ liệu đầu vào | Payload AI thiếu hoặc sai kiểu dữ liệu ở field bắt buộc của Test Case. |
+| Các bước | 1. Chuẩn bị payload AI không hợp lệ. 2. Validate bằng Structured Output schema. 3. Quan sát kết quả validation. |
+| Kết quả mong đợi | Payload không hợp lệ bị schema từ chối; không được coi là một batch Test Case hợp lệ. |
+| Kết quả thực tế | Unit Test Structured Output PASS trong full suite 74 tests. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-REV-001 — Edit Test Case
 
@@ -170,7 +184,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Mở Test Case. 2. Chỉnh nội dung. 3. Bấm Save. 4. Đọc version/audit. |
 | Kết quả mong đợi | Nội dung mới được lưu; version tăng; có audit `EDIT_TEST_CASE`. |
 | Kết quả thực tế | Unit Test PASS. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-REV-002 — DRAFT → IN_REVIEW
 
@@ -184,7 +198,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Mở Test Case DRAFT. 2. Bấm Submit Review. 3. Tải lại record. |
 | Kết quả mong đợi | Status chuyển `IN_REVIEW`; có version/audit tương ứng. |
 | Kết quả thực tế | Unit Test PASS; manual đã quan sát được trong Tuần 07. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-REV-005 — IN_REVIEW → NEEDS_FIX
 
@@ -198,7 +212,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Mở Test Case IN_REVIEW. 2. Nhập review note. 3. Bấm Request Fix. 4. Tải lại record. |
 | Kết quả mong đợi | Status chuyển `NEEDS_FIX`; note/version/audit được lưu. |
 | Kết quả thực tế | Unit Test PASS; manual đã xác nhận validation note rỗng bị chặn. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-APP-001 — Approve hợp lệ
 
@@ -212,7 +226,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Mở Test Case IN_REVIEW. 2. Kiểm tra field bắt buộc. 3. Bấm Approve. 4. Tải lại record. |
 | Kết quả mong đợi | Status chuyển `APPROVED`; có version/audit approve. |
 | Kết quả thực tế | Unit Test PASS; manual đã approve demo Test Case Tuần 07. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-APP-002 — Không DRAFT → APPROVED trực tiếp
 
@@ -226,7 +240,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Đăng nhập reviewer. 2. Gửi hành động approve trên Test Case DRAFT. |
 | Kết quả mong đợi | HTTP 409; Test Case vẫn DRAFT. |
 | Kết quả thực tế | Unit Test PASS. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-APP-004 — Thiếu field bắt buộc
 
@@ -240,7 +254,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Chuẩn bị Test Case IN_REVIEW thiếu field. 2. Gửi approve. |
 | Kết quả mong đợi | HTTP 422; Test Case không chuyển APPROVED. |
 | Kết quả thực tế | Unit Test PASS. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-DUP-001 — Similarity dưới threshold
 
@@ -268,7 +282,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Chuẩn bị candidate similarity 0.8500. 2. Chạy duplicate search. |
 | Kết quả mong đợi | Candidate được tính là đạt ngưỡng theo rule hiện tại. |
 | Kết quả thực tế | Logic Unit Test PASS. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-DUP-003 — Similarity trên threshold
 
@@ -282,7 +296,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Chuẩn bị candidate similarity 0.8501. 2. Chạy duplicate search. |
 | Kết quả mong đợi | Candidate được trả trong danh sách duplicate candidate. |
 | Kết quả thực tế | Logic Unit Test PASS. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-MOD-001 — Tạo Module
 
@@ -296,7 +310,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Mở Module Management. 2. Chọn Create. 3. Nhập Booking. 4. Submit. |
 | Kết quả mong đợi | HTTP 201; module mới xuất hiện trong danh sách. |
 | Kết quả thực tế | Unit Test PASS. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-COV-001 — Coverage khi total = 0
 
@@ -310,7 +324,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Tạo/chọn module không có Requirement. 2. Xem coverage. |
 | Kết quả mong đợi | Coverage = `0%`; không phát sinh exception chia cho 0. |
 | Kết quả thực tế | Unit Test PASS. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-EXP-001 — Export CSV
 
@@ -324,7 +338,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Mở danh sách Test Case. 2. Chọn Export CSV. 3. Mở file tải về. 4. Kiểm tra audit. |
 | Kết quả mong đợi | File CSV chỉ chứa các Test Case đang APPROVED tại thời điểm export; sau export thành công các record đó chuyển EXPORTED; có audit export. |
 | Kết quả thực tế | Unit Test PASS; manual đã tải được CSV. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-EXP-002 — Export XLSX
 
@@ -338,7 +352,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Chọn Export XLSX. 2. Tải file. 3. Mở file bằng Excel. |
 | Kết quả mong đợi | File XLSX mở được và chỉ chứa các Test Case đang APPROVED tại thời điểm export; sau export thành công các record đó chuyển EXPORTED. |
 | Kết quả thực tế | Unit Test PASS; manual XLSX đã mở đúng. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-VER-002 — Compare version
 
@@ -352,7 +366,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Mở Version History. 2. Chọn v1 và v2. 3. Bấm Compare. |
 | Kết quả mong đợi | Hiển thị các field thay đổi với giá trị from/to. |
 | Kết quả thực tế | Unit Test PASS; manual compare đã xác nhận. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-VER-004 — Restore version
 
@@ -366,7 +380,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Mở Version History. 2. Chọn version 4. 3. Bấm Restore. 4. Tải lại record. |
 | Kết quả mong đợi | Nội dung trở về version 4; status `NEEDS_FIX`; lock_version tăng; có audit/version mới. |
 | Kết quả thực tế | Unit Test PASS; manual restore version 4 đã xác nhận. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-PROMPT-001 — Tạo Prompt Config
 
@@ -380,7 +394,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Mở Prompt Config. 2. Nhập template hợp lệ. 3. Submit. 4. Đọc history. |
 | Kết quả mong đợi | Tạo config/version mới active; version cũ vẫn còn history. |
 | Kết quả thực tế | Unit Test PASS. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-USER-013 — QA không được Create User
 
@@ -394,7 +408,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | Các bước | 1. Đăng nhập QA. 2. Gửi thao tác Create User. |
 | Kết quả mong đợi | HTTP 403 `FORBIDDEN_ROLE`; user không được tạo. |
 | Kết quả thực tế | Unit Test PASS. |
-| Trạng thái | PASS - Unit Test - 22/08/2026 - commit `06675fe`. |
+| Trạng thái | PASS - Unit Test - 23/08/2026 - commit `aafea6e`. |
 
 ### TC-FE-001 — Loading state
 
@@ -445,7 +459,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 |---|---|---|---|---|
 | TC-AUTH-011 | EP | Email/password demo hợp lệ | HTTP 200, có Bearer token và user role | Chưa chạy manual |
 | TC-AUTH-012 | EP | Password sai | HTTP 401, không lưu token | Chưa chạy manual |
-| TC-AUTH-013 | Negative | Email sai định dạng | HTTP 422 | Chưa chạy manual |
+| TC-AUTH-013 | Negative | Email sai định dạng | HTTP 400 | Chưa chạy manual |
 
 ## 4. UC02 - Quản lý User
 
@@ -454,10 +468,10 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | TC-USER-012 | Decision Table | Admin tạo QA hợp lệ | HTTP 201, trả user mới | Unit Test/Manual cần xác nhận |
 | TC-USER-013 | Decision Table | QA gọi Create User | HTTP 403 FORBIDDEN_ROLE | PASS - Unit Test |
 | TC-USER-014 | EP | Admin tạo email trùng | HTTP 409 USER_ALREADY_EXISTS | PASS - Unit Test |
-| TC-USER-015 | EP | Admin list user page 1 | HTTP 200, có data/total/page/pageSize | Cần chạy lại Unit Test gói cuối |
-| TC-USER-016 | Decision Table | Admin đổi role hoặc is_active | User được cập nhật và ghi audit an toàn | Cần chạy lại Unit Test gói cuối |
-| TC-USER-017 | Decision Table | QA gọi PATCH user | HTTP 403 FORBIDDEN_ROLE | Cần chạy lại Unit Test gói cuối |
-| TC-AUTH-014 | State/Authorization | User is_active=false đăng nhập | HTTP 403 ACCOUNT_DISABLED | Cần chạy lại Unit Test gói cuối |
+| TC-USER-015 | EP | Admin list user page 1 | HTTP 200, có data/total/page/pageSize | PASS - Unit Test |
+| TC-USER-016 | Decision Table | Admin đổi role hoặc is_active | User được cập nhật và ghi audit an toàn | PASS - Unit Test |
+| TC-USER-017 | Decision Table | QA gọi PATCH user | HTTP 403 FORBIDDEN_ROLE | PASS - Unit Test |
+| TC-AUTH-014 | State/Authorization | User is_active=false đăng nhập | HTTP 403 ACCOUNT_DISABLED | PASS - Unit Test |
 
 ## 5. UC03 / NC-09 - Prompt / Model Configuration
 
@@ -484,7 +498,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 
 | ID | Kỹ thuật | Tình huống | Kết quả mong đợi | Trạng thái |
 |---|---|---|---|---|
-| TC-REQ-012 | BVA | Content 19 ký tự | HTTP 422 | Chưa chạy manual |
+| TC-REQ-012 | BVA | Content 19 ký tự | HTTP 400 | Chưa chạy manual |
 | TC-REQ-013 | BVA | Content 20 ký tự | Được schema chấp nhận nếu các điều kiện khác hợp lệ | Chưa chạy manual |
 | TC-REQ-014 | BVA | Content 21 ký tự | Được schema chấp nhận | Chưa chạy manual |
 | TC-REQ-015 | Authorization | QA sửa Requirement người khác | HTTP 403 FORBIDDEN_RECORD | PASS - Unit Test |
@@ -498,6 +512,7 @@ Bằng chứng tự động hiện có trước khi bổ sung frontend/docs:
 | TC-GEN-004 | Happy Path | QA submit Requirement hợp lệ | HTTP 202, job QUEUED; worker xử lý async | PASS - Unit Test; provider thật phụ thuộc key |
 | TC-GEN-005 | Authorization | QA submit Requirement người khác | 403, không enqueue | PASS - Unit Test |
 | TC-GEN-006 | Error Handling | Provider/AppError | Job FAILED và giữ error code nghiệp vụ | PASS - Regression Test |
+| TC-GEN-007 | Structured Output | Payload AI sai schema | Schema từ chối payload không hợp lệ | PASS - Unit Test |
 
 ## 9. UC07 - Human-in-the-loop Review
 
@@ -588,10 +603,10 @@ Kỹ thuật chính: **Decision Table (role × status × format)**.
 
 | ID | Dữ liệu âm | Kết quả mong đợi |
 |---|---|---|
-| TC-MOD-101 | Bỏ trống name | Frontend báo lỗi cạnh input / backend 422 |
-| TC-MOD-102 | Name 1 ký tự | Frontend báo tối thiểu 2 ký tự / backend 422 |
-| TC-MOD-103 | Name > 150 ký tự | Backend 422 |
-| TC-MOD-104 | parent_id = 0 | Backend 422 |
+| TC-MOD-101 | Bỏ trống name | Frontend báo lỗi cạnh input / backend 400 |
+| TC-MOD-102 | Name 1 ký tự | Frontend báo tối thiểu 2 ký tự / backend 400 |
+| TC-MOD-103 | Name > 150 ký tự | Backend 400 |
+| TC-MOD-104 | parent_id = 0 | Backend 400 |
 | TC-MOD-105 | parent_id không tồn tại | Backend 404 |
 | TC-MOD-106 | Tên trùng cùng cấp | Backend 409 |
 
@@ -599,30 +614,30 @@ Kỹ thuật chính: **Decision Table (role × status × format)**.
 
 | ID | Dữ liệu âm | Kết quả mong đợi |
 |---|---|---|
-| TC-PROMPT-101 | Name < 2 ký tự | Frontend báo lỗi / backend 422 |
-| TC-PROMPT-102 | System Prompt < 20 ký tự | Frontend báo lỗi / backend 422 |
+| TC-PROMPT-101 | Name < 2 ký tự | Frontend báo lỗi / backend 400 |
+| TC-PROMPT-102 | System Prompt < 20 ký tự | Frontend báo lỗi / backend 400 |
 | TC-PROMPT-103 | Thiếu `{requirement_text}` | Frontend báo lỗi / backend 422 |
 | TC-PROMPT-104 | Thiếu `{acceptance_criteria}` | Frontend báo lỗi / backend 422 |
-| TC-PROMPT-105 | model_name rỗng | Backend 422 |
-| TC-PROMPT-106 | max_output_tokens < 256 hoặc > 16000 | Backend 422 |
+| TC-PROMPT-105 | model_name rỗng | Backend 400 |
+| TC-PROMPT-106 | max_output_tokens < 256 hoặc > 16000 | Backend 400 |
 
 ### Test Case Edit Form
 
 | ID | Dữ liệu âm | Kết quả mong đợi |
 |---|---|---|
-| TC-REV-101 | Summary < 3 ký tự | Frontend báo lỗi / backend 422 |
-| TC-REV-102 | Steps rỗng | Frontend báo lỗi / backend 422 |
-| TC-REV-103 | Expected Result < 3 ký tự | Frontend báo lỗi / backend 422 |
-| TC-REV-104 | Priority ngoài enum | Backend 422 |
-| TC-REV-105 | Review Note > 1000 ký tự | Backend 422 |
+| TC-REV-101 | Summary < 3 ký tự | Frontend báo lỗi / backend 400 |
+| TC-REV-102 | Steps rỗng | Frontend báo lỗi / backend 400 |
+| TC-REV-103 | Expected Result < 3 ký tự | Frontend báo lỗi / backend 400 |
+| TC-REV-104 | Priority ngoài enum | Backend 400 |
+| TC-REV-105 | Review Note > 1000 ký tự | Backend 400 |
 | TC-REV-106 | lock_version cũ | Backend 409, yêu cầu tải lại record |
 
 ### Tags Form
 
 | ID | Dữ liệu âm | Kết quả mong đợi |
 |---|---|---|
-| TC-TAG-101 | > 10 tags | Backend 422 |
-| TC-TAG-102 | Tag > 50 ký tự | Backend 422 |
+| TC-TAG-101 | > 10 tags | Backend 400 |
+| TC-TAG-102 | Tag > 50 ký tự | Backend 400 |
 | TC-TAG-103 | Tag rỗng xen kẽ | Normalize và loại tag rỗng |
 | TC-TAG-104 | Tag trùng khác hoa/thường | Normalize và loại duplicate |
 | TC-TAG-105 | Test Case không thuộc module | Backend 403 |

@@ -12,28 +12,58 @@ Từ thư mục gốc repo:
 
 ```bash
 python -m venv .venv
-# Windows: .venv\Scripts\activate
-pip install -r src/backend/requirements.txt
-copy .env.example .env
+
+# Windows Git Bash
+source .venv/Scripts/activate
+
+# Nếu dùng CMD:
+# .venv\Scripts\activate.bat.bat
+
+python -m pip install -r src/backend/requirements.txt
+
+# Git Bash
+cp .env.example .env
+
+# Nếu dùng CMD:
+# copy .env.example .env
 ```
 
-Tạo database PostgreSQL `testcase_ai`, sau đó cập nhật `DATABASE_URL` và các biến local trong `.env`.
+Tạo PostgreSQL role/database khớp với `DATABASE_URL` trong `.env`.
+
+Ví dụ với `psql` bằng tài khoản PostgreSQL có quyền quản trị:
+
+```sql
+CREATE ROLE app_user WITH LOGIN PASSWORD 'change_me';
+CREATE DATABASE testcase_ai OWNER app_user;
+```
+
+Nếu role/database đã tồn tại thì chỉ cần bảo đảm username, password và database trong `.env` khớp với môi trường local.
+
+pgvector phải được cài trên PostgreSQL trước khi chạy migration. Migration `0004_week07_pgvector_duplicates` sẽ bật extension `vector` trong database.
+
+Ví dụ `DATABASE_URL` local:
+
+```env
+DATABASE_URL=postgresql+asyncpg://app_user:change_me@localhost:5432/testcase_ai
+```
+
+Sau đó cập nhật các biến local khác trong `.env`.
 
 Chạy migration và seed:
 
 ```bash
-alembic -c src/backend/alembic.ini upgrade head
+python -m alembic -c src/backend/alembic.ini upgrade head
 python src/backend/scripts/seed_demo.py
 ```
 
-Migration hiện tại đi từ baseline `0001` đến `0009_nc10_user_admin`.
+Migration hiện tại đi từ baseline `0001` đến `0010_module_name_unique`.
 
 ## Chạy dev
 
 Backend API:
 
 ```bash
-uvicorn app.main:app --reload --app-dir src/backend
+python -m uvicorn app.main:app --reload --app-dir src/backend
 ```
 
 Celery worker (Windows Git Bash, chạy từ thư mục gốc repo):
@@ -47,10 +77,10 @@ Swagger: `http://localhost:8000/docs`.
 ## Kiểm tra
 
 ```bash
-ruff format --check src/backend
-ruff check src/backend
-pytest
-pytest --cov=app --cov-report=term-missing
+python -m ruff format --check src/backend
+python -m ruff check src/backend
+python -m pytest -q
+python -m pytest --cov=app --cov-report=term-missing
 ```
 
 ## pgvector cho NC-05

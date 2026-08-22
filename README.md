@@ -20,12 +20,34 @@
 
 ## Chạy nhanh
 
-1. Copy `.env.example` thành `.env` và thay các giá trị local. Không commit `.env`.
-2. Backend: `pip install -r src/backend/requirements.txt`
-3. Database: `alembic -c src/backend/alembic.ini upgrade head && python src/backend/scripts/seed_demo.py`
-4. Backend: `uvicorn app.main:app --reload --app-dir src/backend`
-5. Worker: `celery -A app.worker.celery_app worker --loglevel=INFO --pool=solo --workdir=src/backend`
-6. Frontend: `cd src/frontend && npm install && copy .env.example .env.local && npm run dev`
+1. Từ root repo, tạo virtual environment:
+   `python -m venv .venv`
+
+   Kích hoạt trên Windows Git Bash:
+   `source .venv/Scripts/activate`
+
+   Nếu dùng CMD:
+   `.venv\\Scripts\\activate.bat`
+
+2. Copy `.env.example` thành `.env` (`cp .env.example .env` trên Git Bash; `copy .env.example .env` trên CMD) và thay các giá trị local. Không commit `.env`.
+
+3. Cài backend dependency:
+   `python -m pip install -r src/backend/requirements.txt`
+
+4. Tạo PostgreSQL role/database và bảo đảm pgvector đã được cài theo `src/backend/README.md`.
+
+5. Chạy migration và seed:
+   `python -m alembic -c src/backend/alembic.ini upgrade head`
+   `python src/backend/scripts/seed_demo.py`
+
+6. Backend:
+   `python -m uvicorn app.main:app --reload --app-dir src/backend`
+
+7. Worker (Windows Git Bash):
+   `PYTHONPATH=src/backend ./.venv/Scripts/python.exe -m celery -A app.worker.celery_app worker --loglevel=INFO --pool=solo`
+
+8. Frontend (Git Bash):
+   `cd src/frontend && npm install && cp .env.example .env.local && npm run dev`
 
 Mở `http://localhost:3000`; Swagger ở `http://localhost:8000/docs`.
 
@@ -48,10 +70,10 @@ Các màn hình có trạng thái loading, empty và error để đáp ứng FE-
 Backend, từ root repo:
 
 ```bash
-ruff format --check src/backend
-ruff check src/backend
-pytest
-pytest --cov=app --cov-report=term-missing
+python -m ruff format --check src/backend
+python -m ruff check src/backend
+python -m pytest -q
+python -m pytest --cov=app --cov-report=term-missing
 ```
 
 Frontend:
@@ -97,8 +119,34 @@ Các phần có AI hỗ trợ được ghi chú theo AI-05 trong source. Ngườ
 
 ## Screenshot
 
-Ảnh minh họa API và kết quả chạy của hệ thống:
+Một số giao diện và minh chứng chính của hệ thống ở Tuần 07.
 
-![Swagger API overview](docs/assets/week05/01-swagger-api-overview.png)
+### Swagger API
 
-Các ảnh kiểm thử và minh chứng khác được lưu trong `docs/assets/`.
+![Swagger API Tuần 07](docs/assets/week07/01-swagger-api-overview-1.png)
+
+### Requirement Input
+
+![Requirement SRS Saved](docs/assets/week07/03-requirement-srs-saved.jpg)
+
+### Human-in-the-loop Review
+
+![HITL Review Needs Fix](docs/assets/week07/04-hitl-review-needs-fix.jpg)
+
+### Approved Test Case
+
+![Approved Test Case](docs/assets/week07/05-approved-testcase.jpg)
+
+### Version Compare / Restore
+
+![Version Compare Restore](docs/assets/week07/06-version-compare-restore.jpg)
+
+### Module Coverage
+
+![Module Coverage](docs/assets/week07/07-module-coverage.jpg)
+
+### Backend Tests & Quality
+
+![Backend Tests Quality Pass](docs/assets/week07/11-backend-tests-quality-pass.jpg)
+
+Các ảnh kiểm thử và minh chứng khác được lưu trong `docs/assets/week07/`.

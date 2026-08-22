@@ -1,0 +1,98 @@
+# Source assistance: OpenAI ChatGPT, 2026-08-22 (AI-05).
+# Manual API collection for Week 07. Do not commit real passwords or access tokens.
+
+@baseUrl = http://127.0.0.1:8000/api/v1
+@token = REPLACE_WITH_LOCAL_BEARER_TOKEN
+@moduleId = 1
+@requirementId = 1
+@testCaseId = 1
+@versionNumber = 1
+
+### Login - replace password only in local unsaved copy
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "qa@example.com",
+  "password": "REPLACE_LOCAL_PASSWORD"
+}
+
+### List modules
+GET {{baseUrl}}/modules?page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### Create requirement - QA
+POST {{baseUrl}}/requirements
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "module_id": {{moduleId}},
+  "content": "Người dùng đã đăng nhập có thể thêm sản phẩm còn hàng vào giỏ hàng.",
+  "acceptance_criteria": "Số lượng từ 1 đến 10 và không được vượt quá tồn kho."
+}
+
+### Generate Test Cases - returns 202
+POST {{baseUrl}}/requirements/{{requirementId}}/test-cases
+Authorization: Bearer {{token}}
+
+### List Test Cases
+GET {{baseUrl}}/test-cases?page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### Duplicate candidates
+GET {{baseUrl}}/test-cases/{{testCaseId}}/duplicate-candidates?limit=5
+Authorization: Bearer {{token}}
+
+### Version history
+GET {{baseUrl}}/test-cases/{{testCaseId}}/versions?page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### Compare versions
+GET {{baseUrl}}/test-cases/{{testCaseId}}/versions/compare?fromVersion=1&toVersion=2
+Authorization: Bearer {{token}}
+
+### Restore version - replace lock_version with current record version
+POST {{baseUrl}}/test-cases/{{testCaseId}}/versions/{{versionNumber}}/restore
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "lock_version": 1
+}
+
+### Module coverage
+GET {{baseUrl}}/modules/{{moduleId}}/coverage
+Authorization: Bearer {{token}}
+
+### Export CSV
+GET {{baseUrl}}/test-cases/export?module_id={{moduleId}}&format=csv
+Authorization: Bearer {{token}}
+
+### Update requirement - replace lock_version with current value
+PATCH {{baseUrl}}/requirements/{{requirementId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "lock_version": 1,
+  "content": "Người dùng đã đăng nhập có thể thêm sản phẩm còn hàng vào giỏ hàng và cập nhật số lượng.",
+  "acceptance_criteria": "Số lượng từ 1 đến 10 và không được vượt quá tồn kho."
+}
+
+### Submit Test Case for review
+POST {{baseUrl}}/test-cases/{{testCaseId}}/review
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "lock_version": 1
+}
+
+### Admin list users - use an Admin token
+GET {{baseUrl}}/users?page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### Admin list prompt configs - use an Admin token
+GET {{baseUrl}}/prompt-configs?page=1&pageSize=20
+Authorization: Bearer {{token}}

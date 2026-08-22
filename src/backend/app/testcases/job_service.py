@@ -1,3 +1,5 @@
+# Source assistance: OpenAI ChatGPT, 2026-08-22 (AI-05).
+
 import logging
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,23 +37,8 @@ class GenerationJobService:
         current_user: CurrentUser,
     ) -> GenerationJob:
         """Validate a generation request, persist a queued job and enqueue it."""
-        requirement = await self._requirements.get_by_id(requirement_id)
-        if requirement is None:
-            raise AppError(
-                ErrorCode.REQUIREMENT_NOT_FOUND,
-                "Không tìm thấy yêu cầu.",
-                404,
-            )
-
-        if requirement.created_by != current_user.id and current_user.role not in {UserRole.MANAGER, UserRole.ADMIN}:
-            raise AppError(
-                ErrorCode.FORBIDDEN_RECORD,
-                "Bạn không có quyền truy cập yêu cầu này.",
-                403,
-            )
-
+        requirement = await self._require_accessible_requirement(requirement_id, current_user)
         await self._rate_limiter.check(f"ai-generation:{current_user.id}")
-
         job = GenerationJob(
             requirement_id=requirement.id,
             created_by=current_user.id,
@@ -59,32 +46,37 @@ class GenerationJobService:
         )
         await self._jobs.create(job)
         await self._session.commit()
+        await self._enqueue_or_fail(job, requirement.id, current_user.id)
+        return job
 
+    async def _require_accessible_requirement(
+        self,
+        requirement_id: int,
+        current_user: CurrentUser,
+    ):  # type: ignore[no-untyped-def]
+        requirement = await self._requirements.get_by_id(requirement_id)
+        if requirement is None:
+            raise AppError(ErrorCode.REQUIREMENT_NOT_FOUND, "Không tìm thấy yêu cầu.", 404)
+        allowed_roles = {UserRole.MANAGER, UserRole.ADMIN}
+        if requirement.created_by != current_user.id and current_user.role not in allowed_roles:
+            raise AppError(ErrorCode.FORBIDDEN_RECORD, "Bạn không có quyền truy cập yêu cầu này.", 403)
+        return requirement
+
+    async def _enqueue_or_fail(self, job: GenerationJob, requirement_id: int, user_id: int) -> None:
         try:
             self._task_queue.enqueue(job.id)
         except Exception as exc:
-            await self._jobs.set_status(
-                job,
-                GenerationJobStatus.FAILED,
-                ErrorCode.GENERATION_QUEUE_UNAVAILABLE.value,
-            )
+            await self._jobs.set_status(job, GenerationJobStatus.FAILED, ErrorCode.GENERATION_QUEUE_UNAVAILABLE.value)
             await self._session.commit()
-
             logger.exception(
                 "Failed to enqueue generation job",
-                extra={
-                    "generation_job_id": job.id,
-                    "requirement_id": requirement.id,
-                    "user_id": current_user.id,
-                },
+                extra={"generation_job_id": job.id, "requirement_id": requirement_id, "user_id": user_id},
             )
             raise AppError(
                 ErrorCode.GENERATION_QUEUE_UNAVAILABLE,
                 "Không thể đưa yêu cầu sinh test case vào hàng đợi.",
                 500,
             ) from exc
-
-        return job
 
     async def get_status(
         self,

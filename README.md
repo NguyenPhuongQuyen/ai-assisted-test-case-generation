@@ -1,31 +1,52 @@
 # Công cụ sinh test case tự động từ đặc tả yêu cầu bằng AI
 
-Đồ án ngành ITEC4401 - Đề tài #13. Stack: Next.js 16 + TypeScript, FastAPI + Python, PostgreSQL, OpenAI API.
+Đồ án ngành ITEC4401 - Đề tài #13. Stack: Next.js 16 + TypeScript, FastAPI + Python, PostgreSQL + pgvector, OpenAI API, Celery và RabbitMQ.
 
 ## Kiến trúc
+
 - Source nằm trong `src/`, tách `frontend/` và `backend/` (AR-01).
 - Backend feature-based; Router -> Service -> Repository (AR-02, AR-03, AR-08).
-- OpenAI adapter chỉ nằm tại `src/backend/app/common/ai/` (AR-11).
-- Business Rule được gắn mã BR trong Service (DC-03).
+- OpenAI/Embedding adapter nằm tại `src/backend/app/common/ai/` (AR-11).
+- Business Rule được gắn mã BR tại Service khi có logic nghiệp vụ (DC-03).
+- AI generation chạy background job qua Celery + RabbitMQ; HTTP submit trả `202 Accepted`.
 
 ## Yêu cầu môi trường
+
 - Python 3.11+
 - Node.js 20.9+ (khuyến nghị Node 22 LTS)
-- PostgreSQL 15+
+- PostgreSQL 15+ với pgvector
+- RabbitMQ 4+
 - npm 10+
 
 ## Chạy nhanh
-1. Copy `.env.example` thành `.env` và thay `DATABASE_URL`, `JWT_SECRET`, `OPENAI_API_KEY` bằng giá trị local.
+
+1. Copy `.env.example` thành `.env` và thay các giá trị local. Không commit `.env`.
 2. Backend: `pip install -r src/backend/requirements.txt`
 3. Database: `alembic -c src/backend/alembic.ini upgrade head && python src/backend/scripts/seed_demo.py`
 4. Backend: `uvicorn app.main:app --reload --app-dir src/backend`
-5. Frontend: `cd src/frontend && npm install && copy .env.example .env.local && npm run dev`
-6. Mở `http://localhost:3000`; Swagger ở `http://localhost:8000/docs`.
+5. Worker: `celery -A app.worker.celery_app worker --loglevel=INFO --pool=solo --workdir=src/backend`
+6. Frontend: `cd src/frontend && npm install && copy .env.example .env.local && npm run dev`
 
-> Alembic baseline + seed đã được chuẩn bị sớm để repo chạy lại được. Tuần 06 tiếp tục chấm đầy đủ nhóm DB/AP và thêm GitHub Actions CI theo Mục 21.1.
+Mở `http://localhost:3000`; Swagger ở `http://localhost:8000/docs`.
+
+## Frontend Tuần 07
+
+Frontend có các workspace theo role:
+
+- Login và lưu Bearer token local.
+- QA: nhập/cập nhật Requirement, submit AI generation, theo dõi Generation Job.
+- QA/Manager: danh sách Test Case, edit, review, approve, request-fix, reject.
+- Duplicate candidate bằng pgvector và lịch sử version/compare/restore.
+- Manager: module, tags và coverage/statistics.
+- QA/Manager: export CSV/XLSX các Test Case `APPROVED`.
+- Admin: tạo/list/cập nhật/vô hiệu hóa User và quản lý versioned Prompt/Model configuration.
+
+Các màn hình có trạng thái loading, empty và error để đáp ứng FE-03.
 
 ## Kiểm thử và chất lượng
+
 Backend, từ root repo:
+
 ```bash
 ruff format --check src/backend
 ruff check src/backend
@@ -34,6 +55,7 @@ pytest --cov=app --cov-report=term-missing
 ```
 
 Frontend:
+
 ```bash
 cd src/frontend
 npm run format:check
@@ -41,65 +63,34 @@ npm run lint
 npm run build
 ```
 
-## Biến môi trường
-Không commit `.env`. `.env.example` chỉ chứa giá trị mẫu vô hại (SE-01, CF-01, CF-02).
+GitHub Actions chạy cả backend và frontend khi push lên `tuan-07` và khi mở PR vào `main`.
 
-## Tài liệu tiến độ
-- `docs/weekly/Tuan05.md`
-- `docs/weekly/Tuan06.md`
-- `docs/kiem-thu/TC-TUAN05.md`
-- `docs/kiem-thu/TC-TUAN06.md`
-- `docs/kiem-thu/matran-truyvet.md`
-- `docs/assets/NGUON.md`
+## pgvector / NC-05
 
-## Nguồn tham khảo / AI hỗ trợ
-Skeleton ban đầu được xây dựng với sự hỗ trợ của ChatGPT (OpenAI) và được tổ chức lại theo Quy định Code ITEC4401.
+- Embedding model mặc định: `text-embedding-3-small`.
+- Dimensions: `1536`.
+- Similarity threshold: `0.85`.
+- Index: HNSW với cosine distance.
+- Rebuild toàn bộ embedding: `PYTHONPATH=src/backend python src/backend/scripts/rebuild_embeddings.py --batch-size 50`.
 
-OpenAI API chỉ được dùng qua adapter riêng; model được cấu hình bằng `OPENAI_MODEL` để không hardcode nhà cung cấp/model trong nghiệp vụ.
+Chi tiết cài đặt backend: `src/backend/README.md`.
 
 ## Tài khoản demo local
-Sau khi chạy seed:
+
+Sau khi seed:
+
 - Admin: `admin@example.com`
 - Manager: `manager@example.com`
 - QA: `qa@example.com`
-- Password: giá trị `DEMO_USER_PASSWORD` trong `.env` (file `.env.example` chỉ chứa mật khẩu mẫu vô hại).
+- Password: giá trị `DEMO_USER_PASSWORD` trong `.env`.
 
-## Kiểm thử thủ công và Postman
-- `docs/kiem-thu/Tuan05_OpenAI.postman_collection.json`
-- `docs/kiem-thu/Tuan05_OpenAI.postman_environment.json`
-- `docs/kiem-thu/database_checks.sql`
+## Tài liệu tiến độ
 
----
+- `docs/weekly/Tuan07.md`
+- `docs/kiem-thu/TC-TUAN07.md`
+- `docs/kiem-thu/matran-truyvet.md`
+- `docs/kiem-thu/tuan07.http`
 
-## Cập nhật Tuần 06
+## Nguồn tham khảo / AI hỗ trợ
 
-- GitHub Actions CI cho backend: cài dependency, Ruff và Unit Test.
-- Unit Test backend: 15/15 PASS.
-- Bổ sung regression test cho lỗi Unit Test phụ thuộc `.env`.
-- Bổ sung migration `generation_jobs` và cập nhật `database/schema.sql`.
-- Cập nhật `docs/kiem-thu/TC-TUAN06.md` và ma trận truy vết.
-- Chuyển tác vụ sinh test case sang mô hình background job theo AP-08.
-
-
-## Background Job cho AI Generation - Tuần 06
-
-Tác vụ sinh Test Case bằng AI được đưa sang background job bằng Celery để HTTP request không phải chờ OpenAI xử lý hoàn tất.
-
-### Thành phần
-
-- FastAPI
-- PostgreSQL
-- SQLAlchemy Async
-- Alembic
-- OpenAI Adapter
-- Celery 5.6
-- RabbitMQ broker
-
-### Cấu hình
-
-Tạo file `.env` từ `.env.example` và điền các giá trị local cần thiết.
-
-```env
-CELERY_BROKER_URL=amqp://guest:guest@localhost:5672//
-
-```
+Các phần có AI hỗ trợ được ghi chú theo AI-05 trong source. Người nộp chịu trách nhiệm đọc, kiểm thử và giải thích được code khi bảo vệ.

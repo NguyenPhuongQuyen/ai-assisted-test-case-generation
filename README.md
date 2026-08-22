@@ -94,3 +94,11 @@ Sau khi seed:
 ## Nguồn tham khảo / AI hỗ trợ
 
 Các phần có AI hỗ trợ được ghi chú theo AI-05 trong source. Người nộp chịu trách nhiệm đọc, kiểm thử và giải thích được code khi bảo vệ.
+
+## Screenshot
+
+Ảnh minh họa API và kết quả chạy của hệ thống:
+
+![Swagger API overview](docs/assets/week05/01-swagger-api-overview.png)
+
+Các ảnh kiểm thử và minh chứng khác được lưu trong `docs/assets/`.

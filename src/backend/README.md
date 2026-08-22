@@ -36,10 +36,10 @@ Backend API:
 uvicorn app.main:app --reload --app-dir src/backend
 ```
 
-Celery worker:
+Celery worker (Windows Git Bash, chạy từ thư mục gốc repo):
 
 ```bash
-celery -A app.worker.celery_app worker --loglevel=INFO --pool=solo --workdir=src/backend
+PYTHONPATH=src/backend ./.venv/Scripts/python.exe -m celery -A app.worker.celery_app worker --loglevel=INFO --pool=solo
 ```
 
 Swagger: `http://localhost:8000/docs`.

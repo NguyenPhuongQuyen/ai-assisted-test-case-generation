@@ -18,7 +18,7 @@ Tạo database PostgreSQL `testcase_ai`, sau đó cập nhật `DATABASE_URL` tr
 Chạy migration và seed:
 ```bash
 alembic -c src/backend/alembic.ini upgrade head
-python src/backend/scripts/seed_demo.py
+PYTHONPATH=src/backend python src/backend/scripts/seed_demo.py
 ```
 
 ## Chạy dev

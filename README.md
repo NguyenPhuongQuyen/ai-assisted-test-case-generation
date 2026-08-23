@@ -15,12 +15,46 @@
 - npm 10+
 
 ## Chạy nhanh
-1. Copy `.env.example` thành `.env` và thay `DATABASE_URL`, `JWT_SECRET`, `OPENAI_API_KEY` bằng giá trị local.
-2. Backend: `pip install -r src/backend/requirements.txt`
-3. Database: `alembic -c src/backend/alembic.ini upgrade head && python src/backend/scripts/seed_demo.py`
-4. Backend: `uvicorn app.main:app --reload --app-dir src/backend`
-5. Frontend: `cd src/frontend && npm install && copy .env.example .env.local && npm run dev`
-6. Mở `http://localhost:3000`; Swagger ở `http://localhost:8000/docs`.
+
+Các lệnh dưới đây dùng **Git Bash** và được chạy từ thư mục gốc repository.
+
+Yêu cầu trước khi chạy: Python, Node.js và PostgreSQL đã được cài đặt. Database được cấu hình trong `.env.example`.
+
+### Lệnh 1 - Chuẩn bị backend
+
+```bash
+test -f .env || cp .env.example .env && python -m venv .venv && source .venv/Scripts/activate && python -m pip install -r src/backend/requirements.txt
+```
+
+### Lệnh 2 - Migration và seed dữ liệu demo
+
+```bash
+source .venv/Scripts/activate && alembic -c src/backend/alembic.ini upgrade head && PYTHONPATH=src/backend python src/backend/scripts/seed_demo.py
+```
+
+### Lệnh 3 - Chạy backend
+
+Mở một Git Bash và chạy:
+
+```bash
+source .venv/Scripts/activate && uvicorn app.main:app --reload --app-dir src/backend
+```
+
+### Lệnh 4 - Chạy frontend
+
+Mở Git Bash khác và chạy:
+
+```bash
+cd src/frontend && npm install && { test -f .env.local || cp .env.example .env.local; } && npm run dev
+```
+
+Sau khi hai service đã chạy:
+
+- Trang chủ: `http://localhost:3000`
+- Swagger: `http://localhost:8000/docs`
+
+Nếu cần sử dụng OpenAI thật, điền `OPENAI_API_KEY` hợp lệ trong `.env`.
+Không commit file `.env`.
 
 ## Kiểm thử và chất lượng
 Backend, từ root repo:
@@ -54,11 +88,20 @@ Skeleton ban đầu được xây dựng với sự hỗ trợ của ChatGPT (Op
 OpenAI API chỉ được dùng qua adapter riêng; model được cấu hình bằng `OPENAI_MODEL` để không hardcode nhà cung cấp/model trong nghiệp vụ.
 
 ## Tài khoản demo local
-Sau khi chạy seed:
-- Admin: `admin@example.com`
-- Manager: `manager@example.com`
-- QA: `qa@example.com`
-- Password: giá trị `DEMO_USER_PASSWORD` trong `.env` (file `.env.example` chỉ chứa mật khẩu mẫu vô hại).
+
+Sau khi chạy seed, có thể đăng nhập bằng các tài khoản sau:
+
+| Role | Email | Password mặc định |
+| --- | --- | --- |
+| Admin | `admin@example.com` | `Demo_Change_Me_123!` |
+| Manager | `manager@example.com` | `Demo_Change_Me_123!` |
+| QA | `qa@example.com` | `Demo_Change_Me_123!` |
+
+Password trên là giá trị mặc định của `DEMO_USER_PASSWORD` trong `.env.example`.
+
+Nếu thay đổi `DEMO_USER_PASSWORD` trong `.env` trước khi chạy seed, password của các tài khoản demo sẽ sử dụng giá trị mới đó.
+
+Đây chỉ là credential demo local, không sử dụng cho production.
 
 ## Hướng dẫn chạy chi tiết và Postman
 - `docs/huong-dan/TUAN05-SETUP-POSTMAN.md`

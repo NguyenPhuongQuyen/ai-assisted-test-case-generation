@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from sqlalchemy import func, select, text
+from sqlalchemy import case, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.constants import Priority, TestCaseStatus
@@ -259,7 +259,18 @@ class TestCaseRepository:
             requirement_id=requirement_id,
             case_status=case_status,
         )
-        result = await self._session.execute(statement.order_by(TestCase.id.desc()).offset(offset).limit(limit))
+
+        # BR-09: review high-priority test cases before medium and low priority.
+        priority_order = case(
+            (TestCase.priority == Priority.HIGH, 0),
+            (TestCase.priority == Priority.MEDIUM, 1),
+            (TestCase.priority == Priority.LOW, 2),
+            else_=3,
+        )
+
+        result = await self._session.execute(
+            statement.order_by(priority_order.asc(), TestCase.id.desc()).offset(offset).limit(limit)
+        )
         return list(result.scalars().all())
 
     async def count_accessible(

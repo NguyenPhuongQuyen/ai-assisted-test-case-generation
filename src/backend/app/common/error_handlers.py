@@ -33,7 +33,7 @@ def register_exception_handlers(app: FastAPI) -> None:
             }
             for error in exc.errors()
         ]
-        return _error_response(422, ErrorCode.VALIDATION_ERROR.value, "Dữ liệu đầu vào không hợp lệ.", details)
+        return _error_response(400, ErrorCode.VALIDATION_ERROR.value, "Dữ liệu đầu vào không hợp lệ.", details)
 
     @app.exception_handler(HTTPException)
     async def http_error_handler(_request: Request, exc: HTTPException) -> JSONResponse:

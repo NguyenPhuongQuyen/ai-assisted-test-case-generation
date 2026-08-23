@@ -7,10 +7,11 @@ from app.common.ai.openai_adapter import (
     MAX_SCHEMA_RETRIES,
     SCHEMA_RETRY_REMINDER,
     OpenAIAdapter,
+    PromptRuntimeConfig,
 )
+from app.common.ai.schemas import GeneratedTestCase, GeneratedTestCaseBatch
 from app.common.constants import ErrorCode, Priority
 from app.common.exceptions import AppError
-from app.testcases.schemas import GeneratedTestCase, GeneratedTestCaseBatch
 from pydantic import ValidationError
 
 
@@ -36,12 +37,19 @@ def build_validation_error() -> ValidationError:
     return exc_info.value
 
 
-def build_adapter(monkeypatch, parse_mock: AsyncMock) -> OpenAIAdapter:
-    settings = SimpleNamespace(
-        openai_api_key="test-key",
-        openai_model="test-model",
-        openai_max_output_tokens=1000,
+def build_prompt_config() -> PromptRuntimeConfig:
+    return PromptRuntimeConfig(
+        version_number=1,
+        model_name="test-model",
+        schema_version="1.0",
+        system_prompt=("Bạn là Senior QA Engineer. Tạo test case có cấu trúc để con người rà soát."),
+        user_prompt_template=("Requirement:\n{requirement_text}\n\nAcceptance Criteria:\n{acceptance_criteria}"),
+        max_output_tokens=1000,
     )
+
+
+def build_adapter(monkeypatch, parse_mock: AsyncMock) -> OpenAIAdapter:
+    settings = SimpleNamespace(openai_api_key="test-key")
     monkeypatch.setattr(adapter_module, "get_settings", lambda: settings)
 
     client = SimpleNamespace(
@@ -61,10 +69,12 @@ async def test_valid_output_succeeds_without_retry(monkeypatch) -> None:
     )
     parse_mock = AsyncMock(return_value=response)
     adapter = build_adapter(monkeypatch, parse_mock)
+    prompt_config = build_prompt_config()
 
     result = await adapter.generate_test_cases(
         "User can book from 1 to 8 tickets.",
         "Nine tickets must be rejected.",
+        prompt_config,
     )
 
     assert result.data == batch
@@ -72,7 +82,11 @@ async def test_valid_output_succeeds_without_retry(monkeypatch) -> None:
     assert result.usage.output_tokens == 80
     assert parse_mock.await_count == 1
 
-    system_prompt = parse_mock.call_args.kwargs["input"][0]["content"]
+    call = parse_mock.call_args
+    assert call.kwargs["model"] == "test-model"
+    assert call.kwargs["max_output_tokens"] == 1000
+
+    system_prompt = call.kwargs["input"][0]["content"]
     assert SCHEMA_RETRY_REMINDER not in system_prompt
 
 
@@ -86,10 +100,12 @@ async def test_invalid_schema_is_retried_then_succeeds(monkeypatch) -> None:
     )
     parse_mock = AsyncMock(side_effect=[validation_error, valid_response])
     adapter = build_adapter(monkeypatch, parse_mock)
+    prompt_config = build_prompt_config()
 
     result = await adapter.generate_test_cases(
         "User can book from 1 to 8 tickets.",
         None,
+        prompt_config,
     )
 
     assert result.data == batch
@@ -97,6 +113,7 @@ async def test_invalid_schema_is_retried_then_succeeds(monkeypatch) -> None:
 
     first_prompt = parse_mock.call_args_list[0].kwargs["input"][0]["content"]
     retry_prompt = parse_mock.call_args_list[1].kwargs["input"][0]["content"]
+
     assert SCHEMA_RETRY_REMINDER not in first_prompt
     assert SCHEMA_RETRY_REMINDER in retry_prompt
 
@@ -108,11 +125,13 @@ async def test_invalid_schema_after_all_retries_returns_ai_output_invalid(
     validation_error = build_validation_error()
     parse_mock = AsyncMock(side_effect=[validation_error] * (MAX_SCHEMA_RETRIES + 1))
     adapter = build_adapter(monkeypatch, parse_mock)
+    prompt_config = build_prompt_config()
 
     with pytest.raises(AppError) as exc_info:
         await adapter.generate_test_cases(
             "User can book from 1 to 8 tickets.",
             None,
+            prompt_config,
         )
 
     assert exc_info.value.code == ErrorCode.AI_OUTPUT_INVALID
@@ -128,11 +147,13 @@ async def test_invalid_schema_after_all_retries_returns_ai_output_invalid(
 async def test_provider_error_is_not_retried(monkeypatch) -> None:
     parse_mock = AsyncMock(side_effect=RuntimeError("provider unavailable"))
     adapter = build_adapter(monkeypatch, parse_mock)
+    prompt_config = build_prompt_config()
 
     with pytest.raises(AppError) as exc_info:
         await adapter.generate_test_cases(
             "User can book from 1 to 8 tickets.",
             None,
+            prompt_config,
         )
 
     assert exc_info.value.code == ErrorCode.AI_PROVIDER_ERROR
@@ -148,11 +169,13 @@ async def test_missing_parsed_output_is_retried_then_fails(monkeypatch) -> None:
     )
     parse_mock = AsyncMock(side_effect=[empty_response] * (MAX_SCHEMA_RETRIES + 1))
     adapter = build_adapter(monkeypatch, parse_mock)
+    prompt_config = build_prompt_config()
 
     with pytest.raises(AppError) as exc_info:
         await adapter.generate_test_cases(
             "User can book from 1 to 8 tickets.",
             None,
+            prompt_config,
         )
 
     assert exc_info.value.code == ErrorCode.AI_OUTPUT_INVALID

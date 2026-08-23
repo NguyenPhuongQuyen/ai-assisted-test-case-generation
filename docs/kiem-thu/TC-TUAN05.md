@@ -7,13 +7,13 @@ Kỹ thuật áp dụng: Equivalence Partitioning, Boundary Value Analysis, Stat
 |---|---|
 | Mã TC | TC-GEN-001 |
 | Chức năng / UC | UC06 - Sinh test case tự động |
-| Mục tiêu | Chứng minh đầu ra AI hợp lệ được lưu ở `DRAFT` và có đủ trường bắt buộc theo BR-01/BR-02/BR-03 |
+| Mục tiêu | Chứng minh service xử lý output AI hợp lệ và lưu TestCase ở `DRAFT`, đủ trường bắt buộc và truy vết về requirement/module theo BR-01/BR-02/BR-03 |
 | Tiền điều kiện | QA đã đăng nhập; requirement id=10 thuộc QA; module id=3 tồn tại |
 | Dữ liệu đầu vào | Requirement: “Một giao dịch đặt từ 1 đến 8 vé”; AC: “9 vé phải bị từ chối” |
-| Các bước | 1. POST `/api/v1/requirements/10/test-cases`; 2. Gửi Bearer token hợp lệ; 3. Chờ response |
-| Kết quả mong đợi | HTTP 201; item có `summary`, `steps`, `expected_result`, `priority`; `status=draft`; `requirement_id=10`; DB tạo TestCase + AuditLog |
-| Kết quả thực tế | Chưa chạy |
-| Trạng thái | Blocked - cập nhật ngày chạy và commit khi thực thi |
+| Các bước | 1. Unit test gọi `generate_draft_test_cases(10, current_user)` với AI adapter mock trả structured output hợp lệ; 2. Kiểm tra TestCase, AuditLog và commit transaction |
+| Kết quả mong đợi | TestCase có `status=DRAFT`, `requirement_id=10`, `module_id=3`, đủ `summary`, `steps`, `expected_result`, `priority`; tạo AuditLog; transaction commit |
+| Kết quả thực tế | PASS - Unit Test `test_valid_ai_output_is_persisted_as_draft` |
+| Trạng thái | PASS - 15/08/2026, commit `5e9d478` (CI xanh) |
 
 ## TC-GEN-002
 | Trường | Nội dung |
@@ -22,11 +22,11 @@ Kỹ thuật áp dụng: Equivalence Partitioning, Boundary Value Analysis, Stat
 | Chức năng / UC | UC06 - Sinh test case tự động |
 | Mục tiêu | Chứng minh hệ thống chặn IDOR khi QA truy cập requirement của người khác (SE-06/BR-07) |
 | Tiền điều kiện | QA user_id=7; requirement id=10 thuộc user_id=99 |
-| Dữ liệu đầu vào | POST `/api/v1/requirements/10/test-cases` bằng token user_id=7 |
-| Các bước | 1. Đăng nhập QA A; 2. Gọi endpoint generate cho requirement của QA B |
-| Kết quả mong đợi | HTTP 403; `error.code=FORBIDDEN_RECORD`; không gọi OpenAI; không tạo TestCase/AuditLog |
-| Kết quả thực tế | Chưa chạy |
-| Trạng thái | Blocked - cập nhật ngày chạy và commit khi thực thi |
+| Dữ liệu đầu vào | Gọi generation service với requirement id=10 thuộc user_id=99 và current user_id=7 |
+| Các bước | 1. Unit test gọi `generate_draft_test_cases(10, current_user)`; 2. Kiểm tra lỗi quyền và các dependency không bị gọi |
+| Kết quả mong đợi | Lỗi 403 `FORBIDDEN_RECORD`; không gọi AI adapter; không tạo TestCase; không commit transaction |
+| Kết quả thực tế | PASS - Unit Test `test_qa_cannot_generate_from_another_users_requirement` |
+| Trạng thái | PASS - 15/08/2026, commit `5e9d478` (CI xanh) |
 
 ## TC-GEN-003
 | Trường | Nội dung |
@@ -38,8 +38,8 @@ Kỹ thuật áp dụng: Equivalence Partitioning, Boundary Value Analysis, Stat
 | Dữ liệu đầu vào | Mock AI output thiếu `expected_result` |
 | Các bước | 1. Gọi service generate; 2. Adapter/Pydantic validate output |
 | Kết quả mong đợi | Nhận lỗi `AI_OUTPUT_INVALID`/ValidationError; không tạo TestCase; không commit transaction |
-| Kết quả thực tế | Chưa chạy |
-| Trạng thái | Blocked - cập nhật ngày chạy và commit khi thực thi |
+| Kết quả thực tế | PASS - Unit Test `test_invalid_ai_output_is_not_persisted` |
+| Trạng thái | PASS - 15/08/2026, commit `5e9d478` (CI xanh) |
 
 ## TC-REQ-001
 | Trường | Nội dung |

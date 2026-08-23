@@ -24,6 +24,9 @@ class AuthService:
         if user is None:
             raise AppError(ErrorCode.INVALID_CREDENTIALS, "Email hoặc mật khẩu không đúng.", 401)
 
+        if not getattr(user, "is_active", True):
+            raise AppError(ErrorCode.ACCOUNT_DISABLED, "Tài khoản đã bị vô hiệu hóa.", 403)
+
         now = datetime.now(UTC)
         if user.locked_until is not None and user.locked_until > now:
             raise AppError(ErrorCode.ACCOUNT_LOCKED, "Tài khoản đang tạm khóa do đăng nhập sai nhiều lần.", 429)
@@ -41,5 +44,5 @@ class AuthService:
         token = create_access_token(user.id, user.role)
         return AuthResponse(
             access_token=token,
-            user=UserResponse(id=user.id, email=user.email, role=user.role),
+            user=UserResponse(id=user.id, email=user.email, role=user.role, is_active=True),
         )

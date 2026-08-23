@@ -1,6 +1,9 @@
 from enum import StrEnum
 
 AUTH_SCHEME_BEARER = "bearer"
+AI_GENERATION_QUEUE = "ai-generation"
+GENERATION_TASK_NAME = "testcases.generate"
+EMBEDDING_DIMENSIONS = 1536
 
 
 class UserRole(StrEnum):
@@ -18,14 +21,41 @@ class TestCaseStatus(StrEnum):
     REJECTED = "rejected"
 
 
+class GenerationJobStatus(StrEnum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
 class Priority(StrEnum):
     HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
 
 
+class TestCaseExportFormat(StrEnum):
+    CSV = "csv"
+    XLSX = "xlsx"
+
+
 class AuditAction(StrEnum):
     GENERATE_TEST_CASES = "generate_test_cases"
+    EDIT_TEST_CASE = "edit_test_case"
+    SUBMIT_TEST_CASE_REVIEW = "submit_test_case_review"
+    REQUEST_TEST_CASE_FIX = "request_test_case_fix"
+    APPROVE_TEST_CASE = "approve_test_case"
+    REJECT_TEST_CASE = "reject_test_case"
+    EXPORT_TEST_CASES = "export_test_cases"
+    CREATE_MODULE = "create_module"
+    UPDATE_MODULE = "update_module"
+    TAG_TEST_CASE = "tag_test_case"
+    CREATE_PROMPT_CONFIG = "create_prompt_config"
+    CREATE_REQUIREMENT = "create_requirement"
+    CREATE_USER = "create_user"
+    UPDATE_USER = "update_user"
+    UPDATE_REQUIREMENT = "update_requirement"
+    RESTORE_TEST_CASE = "restore_test_case"
 
 
 class ErrorCode(StrEnum):
@@ -36,10 +66,17 @@ class ErrorCode(StrEnum):
     CONFLICT = "CONFLICT"
     RATE_LIMITED = "RATE_LIMITED"
     MODULE_NOT_FOUND = "MODULE_NOT_FOUND"
+    USER_NOT_FOUND = "USER_NOT_FOUND"
     REQUIREMENT_NOT_FOUND = "REQUIREMENT_NOT_FOUND"
     USER_ALREADY_EXISTS = "USER_ALREADY_EXISTS"
     INVALID_CREDENTIALS = "INVALID_CREDENTIALS"
     ACCOUNT_LOCKED = "ACCOUNT_LOCKED"
+    ACCOUNT_DISABLED = "ACCOUNT_DISABLED"
     AI_PROVIDER_ERROR = "AI_PROVIDER_ERROR"
     AI_OUTPUT_INVALID = "AI_OUTPUT_INVALID"
+    GENERATION_JOB_NOT_FOUND = "GENERATION_JOB_NOT_FOUND"
+    TEST_CASE_NOT_FOUND = "TEST_CASE_NOT_FOUND"
+    TEST_CASE_VERSION_NOT_FOUND = "TEST_CASE_VERSION_NOT_FOUND"
+    PROMPT_CONFIG_NOT_FOUND = "PROMPT_CONFIG_NOT_FOUND"
+    GENERATION_QUEUE_UNAVAILABLE = "GENERATION_QUEUE_UNAVAILABLE"
     INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"

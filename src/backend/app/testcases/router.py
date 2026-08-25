@@ -16,6 +16,7 @@ from app.common.rate_limit import SlidingWindowRateLimiter
 from app.common.task_queue import GenerationTaskQueue
 from app.modules.repository import ModuleRepository
 from app.requirements.repository import RequirementRepository
+from app.testcases.duplicate_merge_service import DuplicateMergeService
 from app.testcases.duplicate_service import DuplicateDetectionService
 from app.testcases.export_service import TestCaseExportService
 from app.testcases.job_repository import GenerationJobRepository
@@ -26,6 +27,8 @@ from app.testcases.review_service import TestCaseReviewService
 from app.testcases.schemas import (
     DuplicateCandidateListResponse,
     DuplicateCandidateResponse,
+    DuplicateMergeRequest,
+    DuplicateMergeResponse,
     GenerationJobResponse,
     ReviewDecisionRequest,
     ReviewTransitionRequest,
@@ -111,6 +114,17 @@ def build_duplicate_service(session: AsyncSession) -> DuplicateDetectionService:
         test_cases=repository,
         query_service=TestCaseQueryService(repository),
         embedding_adapter=OpenAIEmbeddingAdapter(),
+    )
+
+
+def build_duplicate_merge_service(
+    session: AsyncSession,
+) -> DuplicateMergeService:
+    return DuplicateMergeService(
+        session=session,
+        test_cases=TestCaseRepository(session),
+        versions=TestCaseVersionRepository(session),
+        audits=AuditLogRepository(session),
     )
 
 
@@ -231,6 +245,29 @@ async def list_duplicate_candidates(
         threshold=threshold,
         embedding_model=model,
         embedding_dimensions=EMBEDDING_DIMENSIONS,
+    )
+
+
+@router.post(
+    "/test-cases/{test_case_id}/merge-duplicate",
+    response_model=DuplicateMergeResponse,
+)
+async def merge_duplicate_test_case(
+    test_case_id: TestCaseIdParam,
+    payload: DuplicateMergeRequest,
+    session: SessionDep,
+    current_user: CurrentUserDep,
+) -> DuplicateMergeResponse:
+    target, source_id, similarity = await build_duplicate_merge_service(session).merge(
+        target_id=test_case_id,
+        source_id=payload.source_test_case_id,
+        target_lock_version=payload.lock_version,
+        current_user=current_user,
+    )
+    return DuplicateMergeResponse(
+        target=TestCaseResponse.model_validate(target),
+        merged_source_id=source_id,
+        similarity=similarity,
     )
 
 

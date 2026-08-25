@@ -101,6 +101,19 @@ class DuplicateCandidateListResponse(BaseModel):
     embedding_dimensions: int = Field(serialization_alias="embeddingDimensions")
 
 
+class DuplicateMergeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    lock_version: int = Field(ge=1)
+    source_test_case_id: int = Field(ge=1)
+
+
+class DuplicateMergeResponse(BaseModel):
+    target: TestCaseResponse
+    merged_source_id: int = Field(serialization_alias="mergedSourceId")
+    similarity: float = Field(ge=0.0, le=1.0)
+
+
 class TestCaseVersionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

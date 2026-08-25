@@ -6,14 +6,9 @@ import { useEffect, useState } from "react";
 
 import { ApiError } from "@/services/api";
 import { updateTags } from "@/services/modules";
-import { compareVersions, listDuplicates, listVersions, restoreVersion } from "@/services/testcases";
-import type {
-  DuplicateCandidateListResponse,
-  TestCaseRecord,
-  TestCaseVersion,
-  User,
-  VersionCompareResponse,
-} from "@/types/api";
+import { compareVersions, listVersions, restoreVersion } from "@/services/testcases";
+import type { TestCaseRecord, TestCaseVersion, User, VersionCompareResponse } from "@/types/api";
+import { DuplicateTestCaseSection } from "./duplicate-test-case-section";
 import { StateBlock } from "./state-block";
 
 interface TestCaseInsightsProps {
@@ -21,6 +16,7 @@ interface TestCaseInsightsProps {
   user: User;
   record: TestCaseRecord | null;
   onChanged: (record: TestCaseRecord) => void;
+  onReload: () => Promise<void>;
 }
 
 function message(error: unknown): string {
@@ -36,7 +32,7 @@ function VersionOptions({ versions }: { versions: TestCaseVersion[] }) {
   ));
 }
 
-export function TestCaseInsights({ token, user, record, onChanged }: TestCaseInsightsProps) {
+export function TestCaseInsights({ token, user, record, onChanged, onReload }: TestCaseInsightsProps) {
   if (!record) return null;
   return (
     <section className="panel insights-panel">
@@ -46,65 +42,10 @@ export function TestCaseInsights({ token, user, record, onChanged }: TestCaseIns
           <h3>Duplicate & Version</h3>
         </div>
       </div>
-      <DuplicateSection token={token} record={record} />
+      <DuplicateTestCaseSection token={token} user={user} record={record} onChanged={onChanged} onReload={onReload} />
       <VersionSection token={token} record={record} onChanged={onChanged} />
       {user.role === USER_ROLE.MANAGER ? <TagsSection token={token} record={record} onChanged={onChanged} /> : null}
     </section>
-  );
-}
-
-function DuplicateSection({ token, record }: { token: string; record: TestCaseRecord }) {
-  const [result, setResult] = useState<DuplicateCandidateListResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  async function load() {
-    setLoading(true);
-    setError("");
-    try {
-      setResult(await listDuplicates(token, record.id));
-    } catch (requestError) {
-      setError(message(requestError));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      setResult(null);
-      setError("");
-    });
-  }, [record.id]);
-
-  return (
-    <div className="subsection">
-      <button className="secondary-button" disabled={loading} onClick={load} type="button">
-        Kiểm tra Duplicate
-      </button>
-      <StateBlock loading={loading} error={error} />
-      {result ? <DuplicateResult result={result} /> : null}
-    </div>
-  );
-}
-
-function DuplicateResult({ result }: { result: DuplicateCandidateListResponse }) {
-  return (
-    <div className="subsection compact-subsection">
-      <strong>Ngưỡng similarity: {result.threshold}</strong>
-      <span className="muted-text">
-        {result.embeddingModel} · {result.embeddingDimensions} dimensions
-      </span>
-      {result.data.length === 0 ? <StateBlock empty emptyText="Không có duplicate candidate vượt ngưỡng." /> : null}
-      {result.data.map((item) => (
-        <div className="duplicate-row" key={item.id}>
-          <span>
-            TC #{item.id} · {item.summary}
-          </span>
-          <strong>{Math.round(item.similarity * 100)}%</strong>
-        </div>
-      ))}
-    </div>
   );
 }
 

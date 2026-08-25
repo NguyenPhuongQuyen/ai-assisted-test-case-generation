@@ -95,6 +95,21 @@ _DUPLICATE_COUNT_OWNER = """
 """
 
 
+_DUPLICATE_PAIR_SIMILARITY = """
+    SELECT
+        1 - (candidate.embedding <=> target.embedding) AS similarity
+    FROM test_cases AS target
+    JOIN test_cases AS candidate ON candidate.id = :source_id
+    WHERE target.id = :target_id
+      AND candidate.id <> target.id
+      AND candidate.module_id = target.module_id
+      AND target.embedding IS NOT NULL
+      AND candidate.embedding IS NOT NULL
+      AND target.status::text <> 'rejected'
+      AND candidate.status::text <> 'rejected'
+"""
+
+
 @dataclass(frozen=True, slots=True)
 class DuplicateCandidateRecord:
     id: int
@@ -189,6 +204,24 @@ class TestCaseRepository:
         )
         candidates = [self._to_duplicate_candidate(row) for row in result.mappings().all()]
         return candidates, total
+
+    async def get_duplicate_similarity(
+        self,
+        *,
+        target_id: int,
+        source_id: int,
+    ) -> float | None:
+        result = await self._session.execute(
+            text(_DUPLICATE_PAIR_SIMILARITY),
+            {
+                "target_id": target_id,
+                "source_id": source_id,
+            },
+        )
+        similarity = result.scalar_one_or_none()
+        if similarity is None:
+            return None
+        return max(0.0, min(1.0, float(similarity)))
 
     @staticmethod
     def _duplicate_statement(

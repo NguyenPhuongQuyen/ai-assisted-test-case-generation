@@ -64,7 +64,7 @@ export function TestCaseWorkspace({ token, user }: TestCaseWorkspaceProps) {
       />
       <div className="review-detail">
         <TestCaseEditor token={token} user={user} record={selected} onChanged={replace} />
-        <TestCaseInsights token={token} user={user} record={selected} onChanged={replace} />
+        <TestCaseInsights token={token} user={user} record={selected} onChanged={replace} onReload={load} />
       </div>
     </div>
   );

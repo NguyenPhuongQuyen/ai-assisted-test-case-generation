@@ -110,6 +110,12 @@ export interface DuplicateCandidateListResponse {
   embeddingDimensions: number;
 }
 
+export interface DuplicateMergeResponse {
+  target: TestCaseRecord;
+  mergedSourceId: number;
+  similarity: number;
+}
+
 export interface TestCaseVersion {
   versionNumber: number;
   snapshot: Record<string, unknown>;

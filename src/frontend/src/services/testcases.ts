@@ -2,6 +2,7 @@
 
 import type {
   DuplicateCandidateListResponse,
+  DuplicateMergeResponse,
   GenerationJob,
   Priority,
   TestCaseListResponse,
@@ -69,6 +70,24 @@ export function transitionTestCase(
 
 export function listDuplicates(token: string, testCaseId: number): Promise<DuplicateCandidateListResponse> {
   return apiRequest<DuplicateCandidateListResponse>(`/test-cases/${testCaseId}/duplicate-candidates`, {}, token);
+}
+
+export function mergeDuplicate(
+  token: string,
+  record: TestCaseRecord,
+  sourceTestCaseId: number,
+): Promise<DuplicateMergeResponse> {
+  return apiRequest<DuplicateMergeResponse>(
+    `/test-cases/${record.id}/merge-duplicate`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        lock_version: record.lock_version,
+        source_test_case_id: sourceTestCaseId,
+      }),
+    },
+    token,
+  );
 }
 
 export function listVersions(token: string, testCaseId: number): Promise<TestCaseVersionListResponse> {

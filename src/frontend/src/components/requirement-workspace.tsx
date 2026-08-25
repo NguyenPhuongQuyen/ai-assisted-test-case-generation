@@ -9,6 +9,7 @@ import { listModules } from "@/services/modules";
 import { createRequirement, updateRequirement } from "@/services/requirements";
 import { generateTestCases, getGenerationJob } from "@/services/testcases";
 import type { GenerationJob, ModuleRecord, RequirementRecord, User } from "@/types/api";
+import { JobPanel, RequirementHeader, RequirementModuleField } from "./requirement-view-parts";
 import { FieldError, StateBlock } from "./state-block";
 
 interface RequirementWorkspaceProps {
@@ -158,7 +159,7 @@ function RequirementPanel(props: RequirementPanelProps) {
 
   return (
     <section className="panel">
-      <RequirementHeader form={props.form} />
+      <RequirementHeader current={props.form.current} />
 
       <StateBlock
         loading={props.loading}
@@ -178,23 +179,6 @@ function RequirementPanel(props: RequirementPanelProps) {
         />
       ) : null}
     </section>
-  );
-}
-
-function RequirementHeader({ form }: { form: ReturnType<typeof useRequirementForm> }) {
-  return (
-    <div className="panel-heading">
-      <div>
-        <div className="eyebrow">NC-01 · YC-01</div>
-        <h3>Nhập đặc tả yêu cầu</h3>
-      </div>
-
-      {form.current ? (
-        <span className="status-badge">
-          REQ #{form.current.id} · v{form.current.lock_version}
-        </span>
-      ) : null}
-    </div>
   );
 }
 
@@ -223,32 +207,6 @@ function RequirementForm(props: RequirementFormProps) {
 
       {props.form.notice ? <div className="state state-success">{props.form.notice}</div> : null}
     </form>
-  );
-}
-
-interface RequirementModuleFieldProps {
-  modules: ModuleRecord[];
-  moduleId: number;
-  setModuleId: (id: number) => void;
-  disabled: boolean;
-}
-
-function RequirementModuleField(props: RequirementModuleFieldProps) {
-  return (
-    <label>
-      Module
-      <select
-        value={props.moduleId}
-        onChange={(event) => props.setModuleId(Number(event.target.value))}
-        disabled={props.disabled}
-      >
-        {props.modules.map((module) => (
-          <option key={module.id} value={module.id}>
-            {module.name}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }
 
@@ -315,34 +273,5 @@ function RequirementActions({
         </button>
       ) : null}
     </div>
-  );
-}
-
-function JobPanel({ job, notice, error }: { job: GenerationJob | null; notice: string; error: string }) {
-  return (
-    <section className="panel muted-panel">
-      <div className="eyebrow">NC-02 · NC-03</div>
-      <h3>Generation Job</h3>
-      {!job ? (
-        <StateBlock empty emptyText="Chưa có generation job trong phiên làm việc này." />
-      ) : (
-        <div className="job-card">
-          <div>
-            <strong>Job #{job.id}</strong>
-          </div>
-          <div>Requirement: #{job.requirement_id}</div>
-          <div>
-            Trạng thái: <span className={`status-badge status-${job.status}`}>{job.status}</span>
-          </div>
-          {job.error_code ? <div className="state state-error">{job.error_code}</div> : null}
-        </div>
-      )}
-      {error ? <div className="state state-error">{error}</div> : null}
-      {notice ? <div className="state state-success">{notice}</div> : null}
-      <div className="help-box">
-        <strong>Luồng đúng SRS</strong>
-        <p>AI chỉ sinh bản DRAFT. Test case phải qua review/approve trước khi export.</p>
-      </div>
-    </section>
   );
 }

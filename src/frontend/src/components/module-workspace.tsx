@@ -8,6 +8,13 @@ import { ApiError } from "@/services/api";
 import { createModule, getCoverage, listModules, updateModule } from "@/services/modules";
 import { exportTestCases } from "@/services/testcases";
 import type { CoverageResponse, ModuleRecord, User } from "@/types/api";
+import {
+  CoverageActionButtons,
+  CoverageCard,
+  CoverageHeader,
+  CoverageMessages,
+  ManagementHeader,
+} from "./module-view-parts";
 import { FieldError, StateBlock } from "./state-block";
 
 interface ModuleWorkspaceProps {
@@ -156,17 +163,6 @@ function ManagementPanel(props: ManagementProps) {
   );
 }
 
-function ManagementHeader() {
-  return (
-    <div className="panel-heading">
-      <div>
-        <div className="eyebrow">NC-06</div>
-        <h3>Tổ chức theo Module</h3>
-      </div>
-    </div>
-  );
-}
-
 function ManagementModuleSelect({ list }: { list: ReturnType<typeof useModuleList> }) {
   if (list.modules.length === 0) return null;
 
@@ -294,98 +290,5 @@ function CoveragePanel(props: CoverageProps) {
 
       <CoverageMessages action={props.action} />
     </section>
-  );
-}
-
-function CoverageHeader() {
-  return (
-    <div className="panel-heading">
-      <div>
-        <div className="eyebrow">NC-07 · NC-12</div>
-        <h3>Coverage & Export</h3>
-      </div>
-    </div>
-  );
-}
-
-interface CoverageActionButtonsProps {
-  user: User;
-  moduleId: number;
-  busy: boolean;
-  canCoverage: boolean;
-  onLoad: () => Promise<void>;
-  onExport: (format: "csv" | "xlsx") => Promise<void>;
-}
-
-function CoverageActionButtons(props: CoverageActionButtonsProps) {
-  const exportDisabled = props.busy || !props.moduleId || props.user.role === USER_ROLE.ADMIN;
-
-  return (
-    <div className="button-row wrap-row">
-      <button
-        className="secondary-button"
-        disabled={props.busy || !props.moduleId || !props.canCoverage}
-        onClick={() => void props.onLoad()}
-        type="button"
-      >
-        Xem coverage
-      </button>
-
-      <button
-        className="secondary-button"
-        disabled={exportDisabled}
-        onClick={() => void props.onExport("csv")}
-        type="button"
-      >
-        Export CSV
-      </button>
-
-      <button
-        className="secondary-button"
-        disabled={exportDisabled}
-        onClick={() => void props.onExport("xlsx")}
-        type="button"
-      >
-        Export XLSX
-      </button>
-    </div>
-  );
-}
-
-function CoverageMessages({ action }: { action: ReturnType<typeof useActionState> }) {
-  return (
-    <>
-      {action.error ? <div className="state state-error">{action.error}</div> : null}
-
-      {action.notice ? <div className="state state-success">{action.notice}</div> : null}
-    </>
-  );
-}
-
-function CoverageCard({ coverage }: { coverage: CoverageResponse }) {
-  return (
-    <div className="coverage-card">
-      <div className="coverage-score">{coverage.requirementCoveragePercent}%</div>
-      <div>
-        <strong>
-          {coverage.coveredRequirements}/{coverage.totalRequirements}
-        </strong>
-        <span> requirements có test case</span>
-      </div>
-      <div>
-        <strong>
-          {coverage.approvedTestCases}/{coverage.totalTestCases}
-        </strong>
-        <span> test case đã APPROVED</span>
-      </div>
-      <div className="status-grid">
-        {Object.entries(coverage.statusCounts).map(([status, count]) => (
-          <div key={status}>
-            <span>{status}</span>
-            <strong>{count}</strong>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }

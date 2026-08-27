@@ -150,17 +150,14 @@ class ModuleService:
             return
         if module_id is not None and parent_id == module_id:
             raise AppError(ErrorCode.VALIDATION_ERROR, "Module không thể là parent của chính nó.", 422)
-        parent = await self._modules.get_by_id(parent_id)
-        if parent is None:
+
+        ancestor_ids, has_cycle = await self._modules.get_parent_chain(parent_id)
+        if not ancestor_ids:
             raise AppError(ErrorCode.MODULE_NOT_FOUND, "Không tìm thấy parent module.", 404)
-        visited: set[int] = set()
-        while parent.parent_id is not None:
-            if parent.id in visited or (module_id is not None and parent.parent_id == module_id):
-                raise AppError(ErrorCode.VALIDATION_ERROR, "Parent module tạo vòng lặp cây.", 422)
-            visited.add(parent.id)
-            parent = await self._modules.get_by_id(parent.parent_id)
-            if parent is None:
-                break
+
+        creates_cycle = module_id is not None and module_id in ancestor_ids
+        if has_cycle or creates_cycle:
+            raise AppError(ErrorCode.VALIDATION_ERROR, "Parent module tạo vòng lặp cây.", 422)
 
     async def _reject_duplicate_name(self, name: str, parent_id: int | None, exclude_id: int | None) -> None:
         if await self._modules.exists_with_name(name=name, parent_id=parent_id, exclude_id=exclude_id):

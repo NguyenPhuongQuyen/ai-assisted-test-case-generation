@@ -1,4 +1,4 @@
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.models import Module
@@ -11,6 +11,44 @@ class ModuleRepository:
     async def get_by_id(self, module_id: int) -> Module | None:
         result = await self._session.execute(select(Module).where(Module.id == module_id))
         return result.scalar_one_or_none()
+
+    async def get_parent_chain(self, parent_id: int) -> tuple[list[int], bool]:
+        statement = text(
+            """
+            WITH RECURSIVE parent_chain AS (
+                SELECT
+                    id,
+                    parent_id,
+                    ARRAY[id] AS path,
+                    FALSE AS has_cycle
+                FROM modules
+                WHERE id = :parent_id
+
+                UNION ALL
+
+                SELECT
+                    parent.id,
+                    parent.parent_id,
+                    child.path || parent.id,
+                    parent.id = ANY(child.path)
+                FROM modules AS parent
+                JOIN parent_chain AS child
+                    ON parent.id = child.parent_id
+                WHERE NOT child.has_cycle
+            )
+            SELECT id, has_cycle
+            FROM parent_chain
+            """
+        )
+        result = await self._session.execute(
+            statement,
+            {"parent_id": parent_id},
+        )
+        rows = result.mappings().all()
+
+        ids = [int(row["id"]) for row in rows]
+        has_cycle = any(bool(row["has_cycle"]) for row in rows)
+        return ids, has_cycle
 
     async def create(self, module: Module) -> Module:
         self._session.add(module)

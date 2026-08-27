@@ -12,8 +12,22 @@ on:
 jobs:
   backend-quality:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: testcase_ai_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d testcase_ai_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
-      DATABASE_URL: postgresql+asyncpg://ci:ci@127.0.0.1:5432/ci_test
+      DATABASE_URL: postgresql+asyncpg://ci:ci@127.0.0.1:5432/testcase_ai_test
       JWT_SECRET: ci-test-jwt-secret-not-for-production
       OPENAI_API_KEY: ci-test-openai-key
       CELERY_BROKER_URL: amqp://guest:guest@127.0.0.1:5672//
@@ -34,6 +48,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r src/backend/requirements.txt
 
+      - name: Run database migrations
+        run: python -m alembic -c src/backend/alembic.ini upgrade head
+
       - name: Compile Python source
         run: python -m compileall -q src/backend/app
 
@@ -43,7 +60,7 @@ jobs:
       - name: Ruff format check
         run: python -m ruff format --check src/backend
 
-      - name: Unit tests
+      - name: Backend tests
         run: python -m pytest
 
   frontend-quality:

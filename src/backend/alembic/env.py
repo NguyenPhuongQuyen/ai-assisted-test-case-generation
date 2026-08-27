@@ -2,15 +2,9 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
-from app.audit import models as audit_models  # noqa: F401
 from app.common.config import get_settings
 from app.common.database import Base
-from app.modules import models as module_models  # noqa: F401
-from app.prompt_configs import models as prompt_config_models  # noqa: F401
-from app.requirements import models as requirement_models  # noqa: F401
-from app.testcases import models as testcase_models  # noqa: F401
-from app.testcases import version_models as testcase_version_models  # noqa: F401
-from app.users import models as user_models  # noqa: F401
+from app.common.model_registry import register_orm_models
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
@@ -19,6 +13,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 config.set_main_option("sqlalchemy.url", get_settings().database_url)
+register_orm_models()
 target_metadata = Base.metadata
 
 

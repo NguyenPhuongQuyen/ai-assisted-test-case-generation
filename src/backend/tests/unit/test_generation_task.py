@@ -55,3 +55,55 @@ async def test_generation_job_preserves_app_error_code(monkeypatch):
         1,
         ErrorCode.AI_PROVIDER_ERROR.value,
     )
+
+
+@pytest.mark.asyncio
+async def test_generation_job_does_not_stay_running_when_worker_crashes(
+    monkeypatch,
+):
+    job = MagicMock()
+    job.id = 1
+    job.requirement_id = 5
+
+    current_user = MagicMock()
+
+    session = MagicMock()
+    session_context = AsyncMock()
+    session_context.__aenter__.return_value = session
+    session_factory = MagicMock(return_value=session_context)
+
+    load_job = AsyncMock(
+        return_value=(job, current_user),
+    )
+    execute_generation = AsyncMock(
+        side_effect=RuntimeError("worker crashed"),
+    )
+    mark_failed = AsyncMock()
+
+    monkeypatch.setattr(
+        tasks,
+        "get_session_factory",
+        lambda: session_factory,
+    )
+    monkeypatch.setattr(
+        tasks,
+        "_load_job_and_user",
+        load_job,
+    )
+    monkeypatch.setattr(
+        tasks,
+        "_execute_generation",
+        execute_generation,
+    )
+    monkeypatch.setattr(
+        tasks,
+        "_mark_failed",
+        mark_failed,
+    )
+
+    await tasks._run_generation_job(1)
+
+    mark_failed.assert_awaited_once_with(
+        1,
+        ErrorCode.INTERNAL_SERVER_ERROR.value,
+    )

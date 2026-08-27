@@ -52,9 +52,9 @@ def build_service(requirement=None, related_cases=None):
     modules = SimpleNamespace(get_by_id=AsyncMock(return_value=SimpleNamespace(id=1)))
     test_cases = SimpleNamespace(
         list_requirement_revalidation_candidates_for_update=AsyncMock(return_value=related_cases or []),
-        save=AsyncMock(side_effect=lambda item: item),
+        save_all=AsyncMock(side_effect=lambda items: items),
     )
-    versions = SimpleNamespace(create_snapshot=AsyncMock())
+    versions = SimpleNamespace(create_snapshots=AsyncMock())
     audits = SimpleNamespace(create=AsyncMock())
     service = RequirementService(session, requirements, modules, test_cases, versions, audits)
     return service, session, requirements, modules, test_cases, versions, audits
@@ -113,8 +113,13 @@ async def test_update_requirement_marks_approved_cases_needs_fix() -> None:
     assert approved.status == CaseStatus.NEEDS_FIX
     assert exported.status == CaseStatus.NEEDS_FIX
     assert approved.lock_version == 3
-    assert versions.create_snapshot.await_count == 2
-    assert test_cases.save.await_count == 2
+    test_cases.save_all.assert_awaited_once_with([approved, exported])
+
+    versions.create_snapshots.assert_awaited_once()
+    snapshots = versions.create_snapshots.await_args.args[0]
+    assert [item[0] for item in snapshots] == [10, 11]
+    assert all(item[2] == 7 for item in snapshots)
+
     audit = audits.create.await_args.args[0]
     assert audit.action == AuditAction.UPDATE_REQUIREMENT
     assert audit.after_state["affected_test_case_ids"] == [10, 11]

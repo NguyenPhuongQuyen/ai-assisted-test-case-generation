@@ -111,15 +111,23 @@ class RequirementService:
     async def _mark_related_cases_for_review(self, requirement_id: int, user_id: int) -> list[int]:
         # BR-08: approved/exported cases become NEEDS_FIX when their source requirement changes.
         records = await self._test_cases.list_requirement_revalidation_candidates_for_update(requirement_id)
+
         for test_case in records:
             test_case.status = TestCaseStatus.NEEDS_FIX
             test_case.lock_version += 1
-            await self._test_cases.save(test_case)
-            await self._versions.create_snapshot(
-                test_case_id=test_case.id,
-                snapshot=build_test_case_snapshot(test_case),
-                created_by=user_id,
-            )
+
+        await self._test_cases.save_all(records)
+        await self._versions.create_snapshots(
+            [
+                (
+                    test_case.id,
+                    build_test_case_snapshot(test_case),
+                    user_id,
+                )
+                for test_case in records
+            ]
+        )
+
         return [record.id for record in records]
 
     @staticmethod

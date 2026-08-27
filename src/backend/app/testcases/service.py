@@ -127,12 +127,16 @@ class TestCaseGenerationService:
 
     async def _store_versions(self, test_cases: list[TestCase], user_id: int) -> None:
         # BR-06: the AI-produced DRAFT is version 1 before any human edit occurs.
-        for test_case in test_cases:
-            await self._versions.create_snapshot(
-                test_case_id=test_case.id,
-                snapshot=build_test_case_snapshot(test_case),
-                created_by=user_id,
-            )
+        await self._versions.create_snapshots(
+            [
+                (
+                    test_case.id,
+                    build_test_case_snapshot(test_case),
+                    user_id,
+                )
+                for test_case in test_cases
+            ]
+        )
 
     async def _audit_generation(
         self,

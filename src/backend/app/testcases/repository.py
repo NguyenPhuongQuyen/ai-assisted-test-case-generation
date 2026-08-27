@@ -143,6 +143,14 @@ class TestCaseRepository:
         await self._session.flush()
         return test_case
 
+    async def save_all(self, test_cases: list[TestCase]) -> list[TestCase]:
+        if not test_cases:
+            return []
+
+        self._session.add_all(test_cases)
+        await self._session.flush()
+        return test_cases
+
     async def has_embedding(self, test_case_id: int) -> bool:
         statement = text("SELECT embedding IS NOT NULL FROM test_cases WHERE id = :test_case_id")
         result = await self._session.execute(statement, {"test_case_id": test_case_id})

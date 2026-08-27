@@ -19,7 +19,7 @@ def build_service(*, requirement: object | None, ai_result: object) -> tuple[Gen
         create_many=AsyncMock(side_effect=lambda rows: rows),
         set_embeddings=AsyncMock(),
     )
-    versions = SimpleNamespace(create_snapshot=AsyncMock())
+    versions = SimpleNamespace(create_snapshots=AsyncMock())
     audits = SimpleNamespace(create=AsyncMock())
     prompt_config = SimpleNamespace(
         version_number=2,
@@ -99,7 +99,7 @@ async def test_valid_ai_output_is_persisted_as_draft() -> None:
     deps.test_cases.create_many.assert_awaited_once()
     deps.embedding_adapter.embed_texts.assert_awaited_once()
     deps.test_cases.set_embeddings.assert_awaited_once()
-    deps.versions.create_snapshot.assert_awaited_once()
+    deps.versions.create_snapshots.assert_awaited_once()
     deps.audits.create.assert_awaited_once()
     deps.session.commit.assert_awaited_once()
 
@@ -126,7 +126,7 @@ async def test_qa_cannot_generate_from_another_users_requirement() -> None:
     assert exc_info.value.status_code == 403
     deps.ai_adapter.generate_test_cases.assert_not_awaited()
     deps.test_cases.create_many.assert_not_awaited()
-    deps.versions.create_snapshot.assert_not_awaited()
+    deps.versions.create_snapshots.assert_not_awaited()
     deps.session.commit.assert_not_awaited()
 
 
@@ -151,7 +151,7 @@ async def test_invalid_ai_output_is_not_persisted() -> None:
     # Assert
     assert exc_info.value.code == ErrorCode.AI_OUTPUT_INVALID
     deps.test_cases.create_many.assert_not_awaited()
-    deps.versions.create_snapshot.assert_not_awaited()
+    deps.versions.create_snapshots.assert_not_awaited()
     deps.audits.create.assert_not_awaited()
     deps.session.commit.assert_not_awaited()
 

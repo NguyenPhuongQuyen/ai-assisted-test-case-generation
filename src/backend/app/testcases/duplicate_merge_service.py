@@ -56,8 +56,48 @@ class DuplicateMergeService:
         target_lock_version: int,
         current_user: CurrentUser,
     ) -> tuple[TestCase, int, float]:
-        self._require_role(current_user)
+        """Merge a confirmed duplicate into the selected canonical test case.
 
+        Args:
+            target_id: Canonical test case id.
+            source_id: Duplicate test case id.
+            target_lock_version: Expected lock version of the target.
+            current_user: QA or manager performing the merge.
+
+        Returns:
+            Updated target, rejected source id, and similarity score.
+
+        Raises:
+            AppError: When access, lock, status, module, or similarity checks fail.
+        """
+        self._require_role(current_user)
+        self._require_distinct_ids(target_id, source_id)
+
+        target, source = await self._load_merge_pair(
+            target_id=target_id,
+            source_id=source_id,
+            target_lock_version=target_lock_version,
+            current_user=current_user,
+        )
+        similarity = await self._require_duplicate_similarity(
+            target,
+            source,
+        )
+
+        await self._apply_and_persist_merge(
+            target,
+            source,
+            similarity,
+            current_user,
+        )
+
+        return target, source.id, similarity
+
+    @staticmethod
+    def _require_distinct_ids(
+        target_id: int,
+        source_id: int,
+    ) -> None:
         if target_id == source_id:
             raise AppError(
                 ErrorCode.VALIDATION_ERROR,
@@ -65,6 +105,14 @@ class DuplicateMergeService:
                 422,
             )
 
+    async def _load_merge_pair(
+        self,
+        *,
+        target_id: int,
+        source_id: int,
+        target_lock_version: int,
+        current_user: CurrentUser,
+    ) -> tuple[TestCase, TestCase]:
         target = await self._get_accessible_for_update(
             target_id,
             current_user,
@@ -83,6 +131,13 @@ class DuplicateMergeService:
         self._require_mergeable(source)
         self._require_same_module(target, source)
 
+        return target, source
+
+    async def _require_duplicate_similarity(
+        self,
+        target: TestCase,
+        source: TestCase,
+    ) -> float:
         similarity = await self._test_cases.get_duplicate_similarity(
             target_id=target.id,
             source_id=source.id,
@@ -91,10 +146,19 @@ class DuplicateMergeService:
         if similarity is None or similarity < self._threshold:
             raise AppError(
                 ErrorCode.CONFLICT,
-                ("Hai test case không còn đạt ngưỡng duplicate. Vui lòng kiểm tra lại."),
+                "Hai test case không còn đạt ngưỡng duplicate. Vui lòng kiểm tra lại.",
                 409,
             )
 
+        return similarity
+
+    async def _apply_and_persist_merge(
+        self,
+        target: TestCase,
+        source: TestCase,
+        similarity: float,
+        current_user: CurrentUser,
+    ) -> None:
         target_before = build_test_case_snapshot(target)
         source_before = build_test_case_snapshot(source)
 
@@ -133,7 +197,6 @@ class DuplicateMergeService:
         )
 
         await self._session.commit()
-        return target, source.id, similarity
 
     async def _get_accessible_for_update(
         self,

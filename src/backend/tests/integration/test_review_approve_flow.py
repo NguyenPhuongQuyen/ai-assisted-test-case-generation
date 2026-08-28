@@ -1,3 +1,5 @@
+# Source assistance: OpenAI ChatGPT, 2026-08-28 (AI-05).
+
 from collections.abc import Callable
 
 from fastapi.testclient import TestClient
@@ -73,19 +75,12 @@ def seed_draft_test_case(
     return rows[0]["id"]
 
 
-def test_qa_submit_review_va_manager_approve(
+def submit_and_approve(
     client: TestClient,
-    login: Callable[[str], Headers],
-    database_write: DatabaseQuery,
-    database_rows: DatabaseQuery,
+    test_case_id: int,
+    qa_headers: Headers,
+    manager_headers: Headers,
 ) -> None:
-    module_id, requirement_id, qa_headers, manager_headers = create_requirement(client, login)
-    test_case_id = seed_draft_test_case(
-        database_write,
-        module_id,
-        requirement_id,
-    )
-
     review_response = client.post(
         f"/api/v1/test-cases/{test_case_id}/review",
         headers=qa_headers,
@@ -107,6 +102,11 @@ def test_qa_submit_review_va_manager_approve(
     assert approve_response.json()["status"] == "approved"
     assert approve_response.json()["lock_version"] == 3
 
+
+def assert_review_history(
+    database_rows: DatabaseQuery,
+    test_case_id: int,
+) -> None:
     versions = database_rows(
         """
         SELECT COUNT(*) AS total
@@ -133,6 +133,37 @@ def test_qa_submit_review_va_manager_approve(
         "submit_test_case_review",
         "approve_test_case",
     }
+
+
+def test_qa_submit_review_va_manager_approve(
+    client: TestClient,
+    login: Callable[[str], Headers],
+    database_write: DatabaseQuery,
+    database_rows: DatabaseQuery,
+) -> None:
+    (
+        module_id,
+        requirement_id,
+        qa_headers,
+        manager_headers,
+    ) = create_requirement(client, login)
+
+    test_case_id = seed_draft_test_case(
+        database_write,
+        module_id,
+        requirement_id,
+    )
+
+    submit_and_approve(
+        client,
+        test_case_id,
+        qa_headers,
+        manager_headers,
+    )
+    assert_review_history(
+        database_rows,
+        test_case_id,
+    )
 
 
 def test_draft_khong_duoc_approve_truc_tiep(

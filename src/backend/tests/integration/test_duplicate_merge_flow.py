@@ -1,3 +1,5 @@
+# Source assistance: OpenAI ChatGPT, 2026-08-28 (AI-05).
+
 from collections.abc import Callable
 
 from fastapi.testclient import TestClient
@@ -83,41 +85,29 @@ def seed_duplicate_pair(
     return rows[0]["id"], rows[1]["id"]
 
 
-def test_merge_duplicate_giu_target_va_reject_source(
+def merge_duplicate(
     client: TestClient,
-    login: Callable[[str], Headers],
-    database_write: DatabaseQuery,
-    database_rows: DatabaseQuery,
-) -> None:
-    module_id, requirement_id, qa_headers = create_source_data(
-        client,
-        login,
-    )
-    target_id, source_id = seed_duplicate_pair(
-        database_write,
-        module_id,
-        requirement_id,
-    )
-
+    headers: Headers,
+    target_id: int,
+    source_id: int,
+):
     response = client.post(
         f"/api/v1/test-cases/{target_id}/merge-duplicate",
-        headers=qa_headers,
+        headers=headers,
         json={
             "lock_version": 1,
             "source_test_case_id": source_id,
         },
     )
-
     assert response.status_code == 200
+    return response
 
-    body = response.json()
-    assert body["mergedSourceId"] == source_id
-    assert body["similarity"] > 0.99
-    assert body["target"]["id"] == target_id
-    assert body["target"]["status"] == "draft"
-    assert body["target"]["priority"] == "high"
-    assert body["target"]["lock_version"] == 2
 
+def assert_merge_records(
+    database_rows: DatabaseQuery,
+    target_id: int,
+    source_id: int,
+) -> None:
     rows = database_rows(
         """
         SELECT id, status::text AS status, lock_version,
@@ -132,7 +122,6 @@ def test_merge_duplicate_giu_target_va_reject_source(
             "source_id": source_id,
         },
     )
-
     records = {row["id"]: row for row in rows}
 
     assert records[target_id]["status"] == "draft"
@@ -145,32 +134,11 @@ def test_merge_duplicate_giu_target_va_reject_source(
     assert records[source_id]["embedding_cleared"] is True
 
 
-def test_merge_duplicate_tao_version_va_audit(
-    client: TestClient,
-    login: Callable[[str], Headers],
-    database_write: DatabaseQuery,
+def assert_merge_history(
     database_rows: DatabaseQuery,
+    target_id: int,
+    source_id: int,
 ) -> None:
-    module_id, requirement_id, qa_headers = create_source_data(
-        client,
-        login,
-    )
-    target_id, source_id = seed_duplicate_pair(
-        database_write,
-        module_id,
-        requirement_id,
-    )
-
-    response = client.post(
-        f"/api/v1/test-cases/{target_id}/merge-duplicate",
-        headers=qa_headers,
-        json={
-            "lock_version": 1,
-            "source_test_case_id": source_id,
-        },
-    )
-    assert response.status_code == 200
-
     versions = database_rows(
         """
         SELECT test_case_id, COUNT(*) AS total
@@ -183,7 +151,6 @@ def test_merge_duplicate_tao_version_va_audit(
             "source_id": source_id,
         },
     )
-
     assert {row["test_case_id"]: row["total"] for row in versions} == {
         target_id: 1,
         source_id: 1,
@@ -201,8 +168,73 @@ def test_merge_duplicate_tao_version_va_audit(
             "source_id": source_id,
         },
     )
-
     audit_map = {(row["entity_id"], row["action"]) for row in audits}
+    assert (
+        target_id,
+        "edit_test_case",
+    ) in audit_map
+    assert (
+        source_id,
+        "reject_test_case",
+    ) in audit_map
 
-    assert (target_id, "edit_test_case") in audit_map
-    assert (source_id, "reject_test_case") in audit_map
+
+def test_merge_duplicate_giu_target_va_reject_source(
+    client: TestClient,
+    login: Callable[[str], Headers],
+    database_write: DatabaseQuery,
+    database_rows: DatabaseQuery,
+) -> None:
+    module_id, requirement_id, qa_headers = create_source_data(client, login)
+    target_id, source_id = seed_duplicate_pair(
+        database_write,
+        module_id,
+        requirement_id,
+    )
+
+    response = merge_duplicate(
+        client,
+        qa_headers,
+        target_id,
+        source_id,
+    )
+    body = response.json()
+
+    assert body["mergedSourceId"] == source_id
+    assert body["similarity"] > 0.99
+    assert body["target"]["id"] == target_id
+    assert body["target"]["status"] == "draft"
+    assert body["target"]["priority"] == "high"
+    assert body["target"]["lock_version"] == 2
+
+    assert_merge_records(
+        database_rows,
+        target_id,
+        source_id,
+    )
+
+
+def test_merge_duplicate_tao_version_va_audit(
+    client: TestClient,
+    login: Callable[[str], Headers],
+    database_write: DatabaseQuery,
+    database_rows: DatabaseQuery,
+) -> None:
+    module_id, requirement_id, qa_headers = create_source_data(client, login)
+    target_id, source_id = seed_duplicate_pair(
+        database_write,
+        module_id,
+        requirement_id,
+    )
+
+    merge_duplicate(
+        client,
+        qa_headers,
+        target_id,
+        source_id,
+    )
+    assert_merge_history(
+        database_rows,
+        target_id,
+        source_id,
+    )

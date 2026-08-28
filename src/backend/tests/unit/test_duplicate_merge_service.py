@@ -1,3 +1,5 @@
+# Source assistance: OpenAI ChatGPT, 2026-08-28 (AI-05).
+
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -93,10 +95,7 @@ async def test_merge_keeps_target_and_rejects_source() -> None:
         target_id=10,
         source_id=11,
         target_lock_version=2,
-        current_user=CurrentUser(
-            id=7,
-            role=UserRole.QA,
-        ),
+        current_user=CurrentUser(id=7, role=UserRole.QA),
     )
 
     assert result is target

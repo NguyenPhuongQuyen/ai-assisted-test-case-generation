@@ -1,3 +1,5 @@
+# Source assistance: OpenAI ChatGPT, 2026-08-28 (AI-05).
+
 import asyncio
 from collections.abc import Callable, Generator
 from typing import Any
@@ -21,61 +23,79 @@ from app.main import app  # noqa: E402
 TEST_PASSWORD = "Integration_Test_123!"
 
 
+async def _truncate_test_data(connection: Any) -> None:
+    await connection.execute(
+        text(
+            """
+            TRUNCATE TABLE
+                audit_logs,
+                test_case_versions,
+                test_cases,
+                generation_jobs,
+                requirements,
+                modules,
+                prompt_configs,
+                users
+            RESTART IDENTITY CASCADE
+            """
+        )
+    )
+
+
+async def _seed_integration_users(
+    connection: Any,
+    password_hash: str,
+) -> None:
+    await connection.execute(
+        text(
+            """
+            INSERT INTO users (
+                email,
+                password_hash,
+                role,
+                failed_login_attempts,
+                is_active
+            )
+            VALUES
+                (
+                    'admin.integration@example.com',
+                    :password_hash,
+                    'admin',
+                    0,
+                    true
+                ),
+                (
+                    'manager.integration@example.com',
+                    :password_hash,
+                    'manager',
+                    0,
+                    true
+                ),
+                (
+                    'qa.integration@example.com',
+                    :password_hash,
+                    'qa',
+                    0,
+                    true
+                )
+            """
+        ),
+        {"password_hash": password_hash},
+    )
+
+
 async def reset_database(password_hash: str) -> None:
     engine = create_async_engine(database_url)
 
-    async with engine.begin() as connection:
-        await connection.execute(
-            text(
-                """
-                TRUNCATE TABLE
-                    audit_logs,
-                    test_case_versions,
-                    test_cases,
-                    generation_jobs,
-                    requirements,
-                    modules,
-                    prompt_configs,
-                    users
-                RESTART IDENTITY CASCADE
-                """
+    try:
+        async with engine.begin() as connection:
+            await _truncate_test_data(connection)
+            await _seed_integration_users(
+                connection,
+                password_hash,
             )
-        )
-
-        users = [
-            ("admin.integration@example.com", "admin"),
-            ("manager.integration@example.com", "manager"),
-            ("qa.integration@example.com", "qa"),
-        ]
-
-        for email, role in users:
-            await connection.execute(
-                text(
-                    """
-                    INSERT INTO users (
-                        email,
-                        password_hash,
-                        role,
-                        failed_login_attempts,
-                        is_active
-                    )
-                    VALUES (
-                        :email,
-                        :password_hash,
-                        :role,
-                        0,
-                        true
-                    )
-                    """
-                ),
-                {
-                    "email": email,
-                    "password_hash": password_hash,
-                    "role": role,
-                },
-            )
-
-    await engine.dispose()
+    finally:
+        await engine.dispose()
 
 
 async def read_rows(

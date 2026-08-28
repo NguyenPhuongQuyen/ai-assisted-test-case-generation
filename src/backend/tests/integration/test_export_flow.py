@@ -1,3 +1,5 @@
+# Source assistance: OpenAI ChatGPT, 2026-08-28 (AI-05).
+
 from collections.abc import Callable
 from io import BytesIO
 
@@ -78,6 +80,59 @@ def seed_export_cases(
     return ids["Approved Booking"], ids["Draft Booking"]
 
 
+def assert_export_content(
+    response,
+    export_format: str,
+) -> None:
+    assert response.status_code == 200
+    assert "attachment" in response.headers["content-disposition"]
+
+    if export_format == "csv":
+        content = response.content.decode("utf-8-sig")
+        assert "Approved Booking" in content
+        assert "Draft Booking" not in content
+        return
+
+    workbook = load_workbook(BytesIO(response.content))
+    values = [str(cell) for row in workbook.active.iter_rows(values_only=True) for cell in row if cell is not None]
+    assert "Approved Booking" in values
+    assert "Draft Booking" not in values
+
+
+def assert_export_evidence(
+    database_rows: DatabaseQuery,
+    approved_id: int,
+    draft_id: int,
+    module_id: int,
+) -> None:
+    rows = database_rows(
+        """
+        SELECT id, status::text AS status
+        FROM test_cases
+        WHERE id IN (:approved_id, :draft_id)
+        """,
+        {
+            "approved_id": approved_id,
+            "draft_id": draft_id,
+        },
+    )
+    statuses = {row["id"]: row["status"] for row in rows}
+    assert statuses[approved_id] == "exported"
+    assert statuses[draft_id] == "draft"
+
+    audits = database_rows(
+        """
+        SELECT COUNT(*) AS total
+        FROM audit_logs
+        WHERE entity_type = 'test_case_export'
+          AND entity_id = :module_id
+          AND action::text = 'export_test_cases'
+        """,
+        {"module_id": module_id},
+    )
+    assert audits[0]["total"] == 1
+
+
 @pytest.mark.parametrize("export_format", ["csv", "xlsx"])
 def test_export_chi_lay_approved(
     export_format: str,
@@ -86,10 +141,7 @@ def test_export_chi_lay_approved(
     database_write: DatabaseQuery,
     database_rows: DatabaseQuery,
 ) -> None:
-    module_id, requirement_id, qa_headers = create_export_data(
-        client,
-        login,
-    )
+    module_id, requirement_id, qa_headers = create_export_data(client, login)
     approved_id, draft_id = seed_export_cases(
         database_write,
         module_id,
@@ -105,46 +157,16 @@ def test_export_chi_lay_approved(
         },
     )
 
-    assert response.status_code == 200
-    assert "attachment" in response.headers["content-disposition"]
-
-    if export_format == "csv":
-        text = response.content.decode("utf-8-sig")
-        assert "Approved Booking" in text
-        assert "Draft Booking" not in text
-    else:
-        workbook = load_workbook(BytesIO(response.content))
-        values = [str(cell) for row in workbook.active.iter_rows(values_only=True) for cell in row if cell is not None]
-        assert "Approved Booking" in values
-        assert "Draft Booking" not in values
-
-    rows = database_rows(
-        """
-        SELECT id, status::text AS status
-        FROM test_cases
-        WHERE id IN (:approved_id, :draft_id)
-        """,
-        {
-            "approved_id": approved_id,
-            "draft_id": draft_id,
-        },
+    assert_export_content(
+        response,
+        export_format,
     )
-    statuses = {row["id"]: row["status"] for row in rows}
-
-    assert statuses[approved_id] == "exported"
-    assert statuses[draft_id] == "draft"
-
-    audits = database_rows(
-        """
-        SELECT COUNT(*) AS total
-        FROM audit_logs
-        WHERE entity_type = 'test_case_export'
-          AND entity_id = :module_id
-          AND action::text = 'export_test_cases'
-        """,
-        {"module_id": module_id},
+    assert_export_evidence(
+        database_rows,
+        approved_id,
+        draft_id,
+        module_id,
     )
-    assert audits[0]["total"] == 1
 
 
 def test_export_khong_co_approved_bi_chan(

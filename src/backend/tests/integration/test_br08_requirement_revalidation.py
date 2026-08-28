@@ -1,3 +1,5 @@
+# Source assistance: OpenAI ChatGPT, 2026-08-28 (AI-05).
+
 from collections.abc import Callable
 
 from fastapi.testclient import TestClient
@@ -8,14 +10,11 @@ DatabaseQuery = Callable[
 ]
 
 
-def test_sua_requirement_chuyen_approved_test_case_sang_needs_fix(
+def create_br08_requirement(
     client: TestClient,
     login: Callable[[str], dict[str, str]],
-    database_write: DatabaseQuery,
-    database_rows: DatabaseQuery,
-) -> None:
+) -> tuple[dict[str, str], dict, int]:
     manager_headers = login("manager.integration@example.com")
-
     module_response = client.post(
         "/api/v1/modules",
         headers=manager_headers,
@@ -24,13 +23,11 @@ def test_sua_requirement_chuyen_approved_test_case_sang_needs_fix(
             "parent_id": None,
         },
     )
-
     assert module_response.status_code == 201
     module_id = module_response.json()["id"]
 
     qa_headers = login("qa.integration@example.com")
-
-    requirement_response = client.post(
+    response = client.post(
         "/api/v1/requirements",
         headers=qa_headers,
         json={
@@ -39,28 +36,22 @@ def test_sua_requirement_chuyen_approved_test_case_sang_needs_fix(
             "acceptance_criteria": ("He thong tao booking thanh cong va luu du lieu."),
         },
     )
+    assert response.status_code == 201
+    return qa_headers, response.json(), module_id
 
-    assert requirement_response.status_code == 201
 
-    requirement = requirement_response.json()
-    requirement_id = requirement["id"]
-
-    inserted = database_write(
+def seed_br08_approved_case(
+    database_write: DatabaseQuery,
+    requirement_id: int,
+    module_id: int,
+) -> int:
+    rows = database_write(
         """
         INSERT INTO test_cases (
-            requirement_id,
-            module_id,
-            summary,
-            preconditions,
-            steps,
-            expected_result,
-            priority,
-            test_techniques,
-            review_note,
-            status,
-            created_by,
-            lock_version,
-            tags
+            requirement_id, module_id, summary,
+            preconditions, steps, expected_result,
+            priority, test_techniques, review_note,
+            status, created_by, lock_version, tags
         )
         SELECT
             :requirement_id,
@@ -85,38 +76,28 @@ def test_sua_requirement_chuyen_approved_test_case_sang_needs_fix(
             "module_id": module_id,
         },
     )
+    assert len(rows) == 1
+    return rows[0]["id"]
 
-    assert len(inserted) == 1
-    test_case_id = inserted[0]["id"]
 
-    update_response = client.patch(
-        f"/api/v1/requirements/{requirement_id}",
-        headers=qa_headers,
-        json={
-            "lock_version": requirement["lock_version"],
-            "content": ("Nguoi dung co the dat phong khi du lieu hop le va phong van con trong."),
-        },
-    )
-
-    assert update_response.status_code == 200
-    assert update_response.json()["lock_version"] == 2
-
-    case_rows = database_rows(
+def assert_br08_evidence(
+    database_rows: DatabaseQuery,
+    test_case_id: int,
+    requirement_id: int,
+) -> None:
+    cases = database_rows(
         """
-        SELECT
-            status::text AS status,
-            lock_version
+        SELECT status::text AS status, lock_version
         FROM test_cases
         WHERE id = :test_case_id
         """,
         {"test_case_id": test_case_id},
     )
+    assert len(cases) == 1
+    assert cases[0]["status"] == "needs_fix"
+    assert cases[0]["lock_version"] == 2
 
-    assert len(case_rows) == 1
-    assert case_rows[0]["status"] == "needs_fix"
-    assert case_rows[0]["lock_version"] == 2
-
-    version_rows = database_rows(
+    versions = database_rows(
         """
         SELECT COUNT(*) AS total
         FROM test_case_versions
@@ -124,10 +105,9 @@ def test_sua_requirement_chuyen_approved_test_case_sang_needs_fix(
         """,
         {"test_case_id": test_case_id},
     )
+    assert versions[0]["total"] == 1
 
-    assert version_rows[0]["total"] == 1
-
-    audit_rows = database_rows(
+    audits = database_rows(
         """
         SELECT COUNT(*) AS total
         FROM audit_logs
@@ -137,5 +117,36 @@ def test_sua_requirement_chuyen_approved_test_case_sang_needs_fix(
         """,
         {"requirement_id": requirement_id},
     )
+    assert audits[0]["total"] == 1
 
-    assert audit_rows[0]["total"] == 1
+
+def test_sua_requirement_chuyen_approved_test_case_sang_needs_fix(
+    client: TestClient,
+    login: Callable[[str], dict[str, str]],
+    database_write: DatabaseQuery,
+    database_rows: DatabaseQuery,
+) -> None:
+    qa_headers, requirement, module_id = create_br08_requirement(client, login)
+    requirement_id = requirement["id"]
+    test_case_id = seed_br08_approved_case(
+        database_write,
+        requirement_id,
+        module_id,
+    )
+
+    response = client.patch(
+        f"/api/v1/requirements/{requirement_id}",
+        headers=qa_headers,
+        json={
+            "lock_version": requirement["lock_version"],
+            "content": ("Nguoi dung co the dat phong khi du lieu hop le va phong van con trong."),
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["lock_version"] == 2
+    assert_br08_evidence(
+        database_rows,
+        test_case_id,
+        requirement_id,
+    )

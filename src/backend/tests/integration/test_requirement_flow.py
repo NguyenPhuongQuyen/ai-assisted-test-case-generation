@@ -1,3 +1,5 @@
+# Source assistance: OpenAI ChatGPT, 2026-08-28 (AI-05).
+
 from collections.abc import Callable
 
 from fastapi.testclient import TestClient
@@ -8,13 +10,11 @@ DatabaseQuery = Callable[
 ]
 
 
-def test_manager_tao_module_va_qa_tao_requirement(
+def create_requirement_data(
     client: TestClient,
     login: Callable[[str], dict[str, str]],
-    database_rows: DatabaseQuery,
-) -> None:
+) -> tuple[int, int]:
     manager_headers = login("manager.integration@example.com")
-
     module_response = client.post(
         "/api/v1/modules",
         headers=manager_headers,
@@ -23,13 +23,12 @@ def test_manager_tao_module_va_qa_tao_requirement(
             "parent_id": None,
         },
     )
-
     assert module_response.status_code == 201
 
     module_id = module_response.json()["id"]
     qa_headers = login("qa.integration@example.com")
 
-    requirement_response = client.post(
+    response = client.post(
         "/api/v1/requirements",
         headers=qa_headers,
         json={
@@ -38,15 +37,19 @@ def test_manager_tao_module_va_qa_tao_requirement(
             "acceptance_criteria": ("He thong luu requirement va lien ket dung module."),
         },
     )
+    assert response.status_code == 201
 
-    assert requirement_response.status_code == 201
-
-    body = requirement_response.json()
-    requirement_id = body["id"]
-
+    body = response.json()
     assert body["module_id"] == module_id
     assert body["lock_version"] == 1
+    return module_id, body["id"]
 
+
+def assert_requirement_evidence(
+    database_rows: DatabaseQuery,
+    module_id: int,
+    requirement_id: int,
+) -> None:
     rows = database_rows(
         """
         SELECT
@@ -64,7 +67,7 @@ def test_manager_tao_module_va_qa_tao_requirement(
     assert rows[0]["module_id"] == module_id
     assert rows[0]["creator_email"] == "qa.integration@example.com"
 
-    audit_rows = database_rows(
+    audits = database_rows(
         """
         SELECT id
         FROM audit_logs
@@ -73,8 +76,23 @@ def test_manager_tao_module_va_qa_tao_requirement(
         """,
         {"requirement_id": requirement_id},
     )
+    assert len(audits) == 1
 
-    assert len(audit_rows) == 1
+
+def test_manager_tao_module_va_qa_tao_requirement(
+    client: TestClient,
+    login: Callable[[str], dict[str, str]],
+    database_rows: DatabaseQuery,
+) -> None:
+    module_id, requirement_id = create_requirement_data(
+        client,
+        login,
+    )
+    assert_requirement_evidence(
+        database_rows,
+        module_id,
+        requirement_id,
+    )
 
 
 def test_qa_khong_duoc_tao_module(

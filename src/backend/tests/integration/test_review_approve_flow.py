@@ -198,3 +198,125 @@ def test_draft_khong_duoc_approve_truc_tiep(
 
     assert rows[0]["status"] == "draft"
     assert rows[0]["lock_version"] == 1
+
+
+def create_approved_case(
+    client: TestClient,
+    login: Callable[[str], Headers],
+    database_write: DatabaseQuery,
+) -> tuple[int, Headers]:
+    (
+        module_id,
+        requirement_id,
+        qa_headers,
+        manager_headers,
+    ) = create_requirement(client, login)
+
+    test_case_id = seed_draft_test_case(
+        database_write,
+        module_id,
+        requirement_id,
+    )
+    submit_and_approve(
+        client,
+        test_case_id,
+        qa_headers,
+        manager_headers,
+    )
+    return test_case_id, qa_headers
+
+
+def test_manager_cap_nhat_tags_va_xem_coverage_qua_api(
+    client: TestClient,
+    login: Callable[[str], Headers],
+    database_write: DatabaseQuery,
+) -> None:
+    (
+        module_id,
+        requirement_id,
+        _,
+        manager_headers,
+    ) = create_requirement(client, login)
+
+    test_case_id = seed_draft_test_case(
+        database_write,
+        module_id,
+        requirement_id,
+    )
+
+    tag_response = client.patch(
+        f"/api/v1/modules/{module_id}/test-cases/{test_case_id}/tags",
+        headers=manager_headers,
+        json={
+            "tags": [
+                "Boundary",
+                "boundary",
+                "Payment",
+            ]
+        },
+    )
+
+    assert tag_response.status_code == 200
+    assert tag_response.json()["tags"] == [
+        "boundary",
+        "payment",
+    ]
+
+    coverage_response = client.get(
+        f"/api/v1/modules/{module_id}/coverage",
+        headers=manager_headers,
+    )
+
+    assert coverage_response.status_code == 200
+    coverage = coverage_response.json()
+    assert coverage["moduleId"] == module_id
+    assert coverage["totalRequirements"] == 1
+    assert coverage["totalTestCases"] == 1
+
+
+def test_version_list_compare_restore_qua_api(
+    client: TestClient,
+    login: Callable[[str], Headers],
+    database_write: DatabaseQuery,
+) -> None:
+    test_case_id, qa_headers = create_approved_case(
+        client,
+        login,
+        database_write,
+    )
+
+    history_response = client.get(
+        f"/api/v1/test-cases/{test_case_id}/versions",
+        headers=qa_headers,
+    )
+    assert history_response.status_code == 200
+
+    history = history_response.json()
+    assert history["total"] == 2
+    assert sorted(item["versionNumber"] for item in history["data"]) == [1, 2]
+
+    compare_response = client.get(
+        f"/api/v1/test-cases/{test_case_id}/versions/compare",
+        headers=qa_headers,
+        params={
+            "fromVersion": 1,
+            "toVersion": 2,
+        },
+    )
+    assert compare_response.status_code == 200
+
+    comparison = compare_response.json()
+    assert comparison["fromVersion"] == 1
+    assert comparison["toVersion"] == 2
+    assert comparison["changes"]
+
+    restore_response = client.post(
+        f"/api/v1/test-cases/{test_case_id}/versions/1/restore",
+        headers=qa_headers,
+        json={"lock_version": 3},
+    )
+    assert restore_response.status_code == 200
+
+    restored = restore_response.json()
+    assert restored["status"] == "needs_fix"
+    assert restored["lock_version"] == 4

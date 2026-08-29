@@ -64,7 +64,7 @@ cd src/frontend && npm install && { test -f .env.local || cp .env.example .env.l
 Sau khi các service đã chạy:
 
 - Trang chủ: `http://localhost:3000`
-- Swagger: `http://localhost:8000/docs`
+- Swagger: `http://localhost:8001/docs`
 
 Nếu cần sử dụng OpenAI thật, điền `OPENAI_API_KEY` hợp lệ trong `.env`.
 Không commit file `.env`.

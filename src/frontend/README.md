@@ -12,10 +12,10 @@ npm run dev
 Mặc định frontend gọi backend qua:
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8001/api/v1
 ```
 
-## Workspace Tuần 07
+## Workspace Tuần 08
 
 - Requirement & AI: QA nhập/cập nhật requirement và theo dõi generation job.
 - Review Test Case: list/filter, edit, state transition, duplicate candidates, versions/compare/restore.

@@ -289,7 +289,3 @@ src/backend/README.md
 ## AI hỗ trợ
 
 Skeleton ban đầu của dự án được xây dựng với sự hỗ trợ của ChatGPT (OpenAI) và sau đó được chỉnh sửa, tổ chức, kiểm thử và rà soát theo Quy định Code ITEC4401.
-
-Các phần có AI hỗ trợ được khai báo theo AI-05 khi áp dụng.
-
-Người thực hiện chịu trách nhiệm đọc, kiểm thử và giải thích được source code đã nộp.

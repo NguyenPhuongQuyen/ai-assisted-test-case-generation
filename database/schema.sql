@@ -266,4 +266,17 @@ ALTER TYPE audit_action ADD VALUE IF NOT EXISTS 'update_user';
 
 UPDATE alembic_version SET version_num='0009_nc10_user_admin' WHERE alembic_version.version_num = '0008_nc08_version_restore';
 
+-- Running upgrade 0009_nc10_user_admin -> 0010_module_name_unique
+
+CREATE UNIQUE INDEX uq_modules_root_name_ci
+ON modules (lower(name))
+WHERE parent_id IS NULL;
+
+CREATE UNIQUE INDEX uq_modules_parent_name_ci
+ON modules (parent_id, lower(name))
+WHERE parent_id IS NOT NULL;
+
+UPDATE alembic_version SET version_num='0010_module_name_unique'
+WHERE alembic_version.version_num = '0009_nc10_user_admin';
+
 COMMIT;

@@ -16,3 +16,13 @@ class RequirementRepository:
     async def get_by_id(self, requirement_id: int) -> Requirement | None:
         result = await self._session.execute(select(Requirement).where(Requirement.id == requirement_id))
         return result.scalar_one_or_none()
+
+    async def get_by_id_for_update(self, requirement_id: int) -> Requirement | None:
+        statement = select(Requirement).where(Requirement.id == requirement_id).with_for_update()
+        result = await self._session.execute(statement)
+        return result.scalar_one_or_none()
+
+    async def save(self, requirement: Requirement) -> Requirement:
+        self._session.add(requirement)
+        await self._session.flush()
+        return requirement

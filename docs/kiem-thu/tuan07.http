@@ -1,0 +1,271 @@
+# Source assistance: OpenAI ChatGPT, 2026-08-23 (AI-05).
+# Manual API specification for Week 07 (TC-09).
+# Do not commit real passwords or access tokens.
+#
+# Quy ước:
+# - Mỗi request ghi rõ method, URL, headers/body.
+# - Expected HTTP status và required response fields được ghi ngay phía trên request.
+# - Các giá trị token/password thật chỉ thay trong bản local không commit.
+
+@baseUrl = http://127.0.0.1:8000/api/v1
+@token = REPLACE_WITH_LOCAL_BEARER_TOKEN
+@moduleId = 1
+@requirementId = 1
+@testCaseId = 1
+@versionNumber = 1
+
+
+### Login - replace password only in local unsaved copy
+# Expected HTTP: 200
+# Required response fields:
+# - access_token
+# - token_type
+# - user.id
+# - user.email
+# - user.role
+# - user.isActive
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "qa@example.com",
+  "password": "REPLACE_LOCAL_PASSWORD"
+}
+
+
+### List modules
+# Expected HTTP: 200
+# Required response fields:
+# - data
+# - total
+# - page
+# - pageSize
+# Each data item:
+# - id
+# - name
+# - parent_id
+# - created_by
+# - created_at
+GET {{baseUrl}}/modules?page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+
+### Create requirement - QA
+# Expected HTTP: 201
+# Required response fields:
+# - id
+# - module_id
+# - content
+# - acceptance_criteria
+# - lock_version
+POST {{baseUrl}}/requirements
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "module_id": {{moduleId}},
+  "content": "Người dùng đã đăng nhập có thể thêm sản phẩm còn hàng vào giỏ hàng.",
+  "acceptance_criteria": "Số lượng từ 1 đến 10 và không được vượt quá tồn kho."
+}
+
+
+### Generate Test Cases - background job
+# Expected HTTP: 202
+# Required response fields:
+# - id
+# - requirement_id
+# - status
+# - error_code
+POST {{baseUrl}}/requirements/{{requirementId}}/test-cases
+Authorization: Bearer {{token}}
+
+
+### List Test Cases
+# Expected HTTP: 200
+# Required response fields:
+# - data
+# - total
+# - page
+# - pageSize
+# Each data item includes:
+# - id
+# - requirement_id
+# - module_id
+# - summary
+# - steps
+# - expected_result
+# - priority
+# - status
+# - lock_version
+GET {{baseUrl}}/test-cases?page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+
+### Duplicate candidates
+# Expected HTTP: 200
+# Required response fields:
+# - data
+# - total
+# - page
+# - pageSize
+# - threshold
+# - embeddingModel
+# - embeddingDimensions
+# Each data item includes:
+# - id
+# - requirement_id
+# - summary
+# - status
+# - priority
+# - similarity
+GET {{baseUrl}}/test-cases/{{testCaseId}}/duplicate-candidates?page=1&pageSize=5
+Authorization: Bearer {{token}}
+
+
+### Version history
+# Expected HTTP: 200
+# Required response fields:
+# - data
+# - total
+# - page
+# - pageSize
+# Each data item:
+# - versionNumber
+# - snapshot
+# - createdBy
+# - createdAt
+GET {{baseUrl}}/test-cases/{{testCaseId}}/versions?page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+
+### Compare versions
+# Expected HTTP: 200
+# Required response fields:
+# - fromVersion
+# - toVersion
+# - changes
+GET {{baseUrl}}/test-cases/{{testCaseId}}/versions/compare?fromVersion=1&toVersion=2
+Authorization: Bearer {{token}}
+
+
+### Restore version - replace lock_version with current record version
+# Expected HTTP: 200
+# Required response fields:
+# - id
+# - requirement_id
+# - module_id
+# - summary
+# - steps
+# - expected_result
+# - priority
+# - status
+# - lock_version
+POST {{baseUrl}}/test-cases/{{testCaseId}}/versions/{{versionNumber}}/restore
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "lock_version": 1
+}
+
+
+### Module coverage
+# Expected HTTP: 200
+# Required response fields:
+# - moduleId
+# - totalRequirements
+# - coveredRequirements
+# - requirementCoveragePercent
+# - totalTestCases
+# - approvedTestCases
+# - statusCounts
+GET {{baseUrl}}/modules/{{moduleId}}/coverage
+Authorization: Bearer {{token}}
+
+
+### Export CSV
+# Expected HTTP: 200
+# Expected response:
+# - File payload, không phải JSON response model.
+# - Chỉ các Test Case APPROVED hợp lệ tại thời điểm export được xuất.
+GET {{baseUrl}}/test-cases/export?module_id={{moduleId}}&format=csv
+Authorization: Bearer {{token}}
+
+
+### Update requirement - replace lock_version with current value
+# Expected HTTP: 200
+# Required response fields:
+# - id
+# - module_id
+# - content
+# - acceptance_criteria
+# - lock_version
+PATCH {{baseUrl}}/requirements/{{requirementId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "lock_version": 1,
+  "content": "Người dùng đã đăng nhập có thể thêm sản phẩm còn hàng vào giỏ hàng và cập nhật số lượng.",
+  "acceptance_criteria": "Số lượng từ 1 đến 10 và không được vượt quá tồn kho."
+}
+
+
+### Submit Test Case for review
+# Expected HTTP: 200
+# Required response fields:
+# - id
+# - requirement_id
+# - module_id
+# - summary
+# - steps
+# - expected_result
+# - priority
+# - status
+# - lock_version
+POST {{baseUrl}}/test-cases/{{testCaseId}}/review
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "lock_version": 1
+}
+
+
+### Admin list users - use an Admin token
+# Expected HTTP: 200
+# Required response fields:
+# - data
+# - total
+# - page
+# - pageSize
+# Each data item:
+# - id
+# - email
+# - role
+# - isActive
+GET {{baseUrl}}/users?page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+
+### Admin list prompt configs - use an Admin token
+# Expected HTTP: 200
+# Required response fields:
+# - data
+# - total
+# - page
+# - pageSize
+# Each data item includes:
+# - id
+# - versionNumber
+# - name
+# - systemPrompt
+# - userPromptTemplate
+# - modelName
+# - schemaVersion
+# - maxOutputTokens
+# - isActive
+# - createdBy
+# - createdAt
+GET {{baseUrl}}/prompt-configs?page=1&pageSize=20
+Authorization: Bearer {{token}}

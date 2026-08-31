@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, Text, func
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.constants import Priority, TestCaseStatus
@@ -24,11 +24,14 @@ class TestCase(Base):
     expected_result: Mapped[str] = mapped_column(Text)
     priority: Mapped[Priority] = mapped_column(Enum(Priority, values_callable=_enum_values, name="test_case_priority"))
     test_techniques: Mapped[list[str]] = mapped_column(JSON, default=list)
+    tags: Mapped[list[str]] = mapped_column(JSON, default=list)
     review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[TestCaseStatus] = mapped_column(
         Enum(TestCaseStatus, values_callable=_enum_values, name="test_case_status"),
         default=TestCaseStatus.DRAFT,
         index=True,
     )
+    # DB-15: clients send this value back so stale review updates return HTTP 409 instead of overwriting changes.
+    lock_version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

@@ -1,23 +1,34 @@
-# Frontend - Next.js
+# Frontend - Next.js 16
 
-## Yêu cầu
-- Node.js 20.9+ (khuyến nghị Node 22 LTS)
-- npm 10+
+## Cài đặt
 
-## Chạy
 ```bash
-cp .env.example .env.local
+cd src/frontend
 npm install
+copy .env.example .env.local
 npm run dev
 ```
 
-Mở `http://localhost:3000`.
+Mặc định frontend gọi backend qua:
 
-## Kiểm tra
+```env
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8001/api/v1
+```
+
+## Workspace Tuần 08
+
+- Requirement & AI: QA nhập/cập nhật requirement và theo dõi generation job.
+- Review Test Case: list/filter, edit, state transition, duplicate candidates, versions/compare/restore.
+- Module & Coverage: module management, coverage/statistics và export.
+- System Config: Admin tạo user và quản lý prompt/model versions.
+
+Mỗi luồng chính có loading, empty và error state theo FE-03. Quyền cuối cùng luôn được backend kiểm tra lại; frontend chỉ ẩn/disable action để UX rõ hơn.
+
+## Quality check
+
 ```bash
+npm run format
 npm run format:check
 npm run lint
 npm run build
 ```
-
-FE-01: mọi lời gọi backend phải đi qua `src/services/api.ts`.

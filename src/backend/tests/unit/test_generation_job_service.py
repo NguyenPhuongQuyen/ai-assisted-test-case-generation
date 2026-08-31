@@ -75,6 +75,22 @@ async def test_submit_other_users_requirement_is_forbidden() -> None:
     deps.task_queue.enqueue.assert_not_called()
 
 
+@pytest.mark.parametrize("role", [UserRole.MANAGER, UserRole.ADMIN])
+@pytest.mark.asyncio
+async def test_non_qa_cannot_submit_generation_for_requirement(role: UserRole) -> None:
+    requirement = SimpleNamespace(id=10, created_by=99)
+    service, deps = build_service(requirement=requirement)
+    user = CurrentUser(id=8, role=role)
+
+    with pytest.raises(AppError) as exc_info:
+        await service.submit(10, user)
+
+    assert exc_info.value.code == ErrorCode.FORBIDDEN_RECORD
+    assert exc_info.value.status_code == 403
+    deps.jobs.create.assert_not_awaited()
+    deps.task_queue.enqueue.assert_not_called()
+
+
 @pytest.mark.asyncio
 async def test_get_other_users_job_is_forbidden() -> None:
     job = SimpleNamespace(id=42, requirement_id=10, created_by=99)

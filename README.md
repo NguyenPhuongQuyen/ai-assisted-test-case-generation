@@ -23,6 +23,22 @@
 - Frontend giao tiếp với backend qua REST API `/api/v1`.
 - PostgreSQL lưu dữ liệu nghiệp vụ; pgvector hỗ trợ embedding và Duplicate Detection.
 
+## pgvector và Duplicate Detection
+
+Hệ thống sử dụng PostgreSQL `pgvector` để phát hiện các test case tương tự theo NC-05.
+
+- Embedding model: `text-embedding-3-small`
+- Số chiều embedding: `1536`
+- Độ tương tự: cosine similarity
+- Ngưỡng duplicate mặc định: `0.85`
+- Vector index: HNSW với `vector_cosine_ops`
+- Index trong database: `ix_test_cases_embedding_hnsw`
+- Rebuild embedding: `PYTHONPATH=src/backend python src/backend/scripts/rebuild_embeddings.py --batch-size 50`
+
+Migration `0004_week07_pgvector_duplicates` bật extension `vector`, thêm cột embedding và tạo HNSW index.
+
+Lệnh rebuild sử dụng Embedding API nên yêu cầu cấu hình API key hợp lệ trong file `.env` cục bộ.
+
 ## Yêu cầu môi trường
 
 - Python 3.11+

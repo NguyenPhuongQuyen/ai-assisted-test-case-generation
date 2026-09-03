@@ -1,0 +1,250 @@
+{
+  "info": {
+    "name": "ITEC4401 - Tuan09 Newman API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      }
+    },
+    {
+      "name": "02 Login QA",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.environment.set('qaToken', body.access_token);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"qa@example.com\",\n  \"password\": \"{{qaPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "03 Create Requirement",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+              "const body = pm.response.json();",
+              "pm.environment.set('requirementId', body.id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{qaToken}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"module_id\": 1,\n  \"content\": \"Người dùng đã đăng nhập có thể đặt từ 1 đến 8 vé trong một giao dịch. Hệ thống từ chối nếu chọn hơn 8 vé.\",\n  \"acceptance_criteria\": \"1 đến 8 vé hợp lệ; 9 vé bị từ chối. Không cho đặt ghế đã có người giữ.\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/requirements",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "requirements"
+          ]
+        }
+      }
+    },
+    {
+      "name": "04 Submit Generation Job",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 202\", function () {",
+              "    pm.response.to.have.status(202);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "",
+              "pm.test(\"Generation job created\", function () {",
+              "    pm.expect(body).to.have.property(\"id\");",
+              "    pm.expect(body).to.have.property(\"requirement_id\");",
+              "    pm.expect(body.status).to.be.oneOf([\"queued\", \"running\", \"completed\"]);",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"jobId\", body.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{qaToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/requirements/{{requirementId}}/test-cases",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "requirements",
+            "{{requirementId}}",
+            "test-cases"
+          ]
+        }
+      }
+    },
+    {
+      "name": "05 Negative - Missing Module",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 404', function () { pm.response.to.have.status(404); });",
+              "const body = pm.response.json();",
+              "pm.expect(body.error.code).to.eql('MODULE_NOT_FOUND');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{qaToken}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"module_id\": 999,\n  \"content\": \"Requirement text long enough to pass the server-side validation check.\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/requirements",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "requirements"
+          ]
+        }
+      }
+    },
+    {
+      "name": "06 Negative - No Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 401', function () { pm.response.to.have.status(401); });",
+              "const body = pm.response.json();",
+              "pm.expect(body.error.code).to.eql('UNAUTHORIZED');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"module_id\": 1,\n  \"content\": \"Requirement text long enough to pass the server-side validation check.\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/requirements",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "requirements"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "jobId",
+      "value": ""
+    }
+  ]
+}

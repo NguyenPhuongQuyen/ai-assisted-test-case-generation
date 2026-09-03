@@ -41,3 +41,5 @@ htmlcov/
 
 # Local generated artifacts
 *.zip
+
+docs/kiem-thu/newman/

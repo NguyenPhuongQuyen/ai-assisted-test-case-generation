@@ -1,0 +1,21 @@
+﻿gold_id,requirement_id,job_id,generation_status,generated_test_cases,schema_valid,coverage,technique_match,no_hallucination,evidence_note
+GS01,6,5,completed,10,PASS,PASS,PASS,PASS,AI bao phủ đầy đủ Gold Set và không phát hiện rule suy diễn trái yêu cầu.
+GS02,7,6,completed,9,PASS,PASS,PASS,PASS,AI bao phủ đầy đủ Gold Set và không phát hiện rule suy diễn trái yêu cầu.
+GS03,8,7,completed,6,PASS,PARTIAL,PASS,PASS,Bao phủ lớp 1-8 nhưng chưa có test riêng cho giá trị 7 ghế.
+GS04,9,8,completed,4,PASS,PASS,PASS,PASS,AI bao phủ đầy đủ Gold Set và không phát hiện rule suy diễn trái yêu cầu.
+GS05,10,9,completed,6,PASS,PASS,PASS,PASS,AI bao phủ đầy đủ Gold Set và không phát hiện rule suy diễn trái yêu cầu.
+GS06,11,10,completed,5,PASS,PASS,PASS,PASS,AI bao phủ đầy đủ Gold Set và không phát hiện rule suy diễn trái yêu cầu.
+GS07,12,11,completed,5,PASS,PARTIAL,PASS,PASS,Chưa có test riêng cho từ khóa chứa ký tự đặc biệt.
+GS08,13,12,completed,6,PASS,PARTIAL,PASS,PASS,Đã kiểm thử lớp non-PDF nhưng chưa tách riêng DOCX và PNG.
+GS09,14,13,completed,5,PASS,PASS,PASS,PASS,AI bao phủ đầy đủ Gold Set và không phát hiện rule suy diễn trái yêu cầu.
+GS10,15,14,completed,6,PASS,PASS,PASS,PASS,AI bao phủ đầy đủ Gold Set và không phát hiện rule suy diễn trái yêu cầu.
+GS11,16,15,completed,3,PASS,PASS,PASS,PASS,AI bao phủ đầy đủ Gold Set và không phát hiện rule suy diễn trái yêu cầu.
+GS12,17,16,completed,5,PASS,PASS,PASS,PASS,AI bao phủ đầy đủ Gold Set và không phát hiện rule suy diễn trái yêu cầu.
+GS13,18,17,completed,6,PASS,PARTIAL,PASS,PASS,Chưa sinh trường hợp concurrency hai khách cùng mua phần tồn kho cuối.
+GS14,19,18,completed,10,PASS,PASS,PASS,PASS,AI bao phủ đầy đủ Gold Set và không phát hiện rule suy diễn trái yêu cầu.
+GS15,20,19,completed,5,PASS,PASS,PASS,PASS,AI bao phủ đầy đủ Gold Set và không phát hiện rule suy diễn trái yêu cầu.
+GS16,21,20,completed,5,PASS,PASS,PASS,PASS,AI bao phủ đầy đủ Gold Set và không phát hiện rule suy diễn trái yêu cầu.
+GS17,22,21,completed,3,PASS,PARTIAL,PASS,PASS,"Các trạng thái không APPROVED được gom thành một lớp, chưa tách riêng DRAFT/IN_REVIEW/NEEDS_FIX/REJECTED."
+GS18,23,22,completed,3,PASS,PASS,PASS,PASS,AI bao phủ đầy đủ Gold Set và không phát hiện rule suy diễn trái yêu cầu.
+GS19,24,23,completed,4,PASS,PASS,PASS,PASS,AI bao phủ đầy đủ Gold Set và không phát hiện rule suy diễn trái yêu cầu.
+GS20,25,24,completed,4,PASS,PASS,PASS,PASS,AI bao phủ đầy đủ Gold Set và không phát hiện rule suy diễn trái yêu cầu.

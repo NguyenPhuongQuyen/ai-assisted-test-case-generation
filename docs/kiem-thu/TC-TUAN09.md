@@ -12,8 +12,8 @@ toàn bộ 128 mã Test Case đã thiết kế.
 
 ### Backend
 
-- Unit + Integration: **107 PASS, 1 warning**
-- Integration subset: **15 PASS, 1 warning**
+- Unit + Integration: **108 PASS, 1 warning**
+- Integration subset: **16 PASS, 1 warning**
 - Warning còn lại là `StarletteDeprecationWarning`, không làm test fail.
 - Integration test sử dụng database riêng `testcase_ai_test`.
 - Database demo/dev tiếp tục sử dụng `testcase_ai`.
@@ -95,7 +95,7 @@ Chi tiết:
 
 ## 5. Defect Tuần 09
 
-### DF-T09-01 - Celery worker lỗi event loop khi xử lý nhiều generation job
+### DF-T09-01 / Issue #24 - Celery worker lỗi event loop khi xử lý nhiều generation job
 
 - Severity: **Major**
 - Thành phần: Celery / SQLAlchemy async / asyncpg
@@ -109,9 +109,9 @@ Chi tiết:
   - focused Celery task test: **2 PASS**
   - full backend regression sau fix: **PASS**
   - E2E RabbitMQ/Celery/OpenAI chạy thật: **PASS**
-- Trạng thái: **CLOSED**
+- Trạng thái: **RETEST PASS - READY TO CLOSE**
 
-### DF-T09-02 - Integration test chưa tách hoàn toàn khỏi database demo
+### DF-T09-02 / Issue #25 - Integration test chưa tách hoàn toàn khỏi database demo
 
 - Severity: **Major**
 - Thành phần: Test isolation / PostgreSQL
@@ -124,13 +124,13 @@ Chi tiết:
 - Fix/documentation commit: `1088e72`
 - Regression:
   - Integration: **15 PASS**
-  - Full backend: **107 PASS**
+  - Full backend: **108 PASS**
   - `.env` vẫn trỏ về `testcase_ai`.
-- Trạng thái: **CLOSED**
+- Trạng thái: **RETEST PASS - READY TO CLOSE**
 
-### DF-T09-03 - Không thể mở lại Requirement cũ từ giao diện QA
+### DF-T09-03 / Issue #26 - Không thể mở lại Requirement cũ từ giao diện QA
 
-- Severity: **Minor**
+- Severity: **Major**
 - Thành phần: Frontend / Requirement API
 - Hiện tượng: sau khi rời workspace, QA không thể chọn lại Requirement đã
   lưu để cập nhật; form chỉ giữ Requirement vừa tạo trong phiên.
@@ -143,16 +143,17 @@ Chi tiết:
   - Backend Ruff: **PASS**
   - Frontend ESLint: **PASS**
   - Frontend build: **PASS**
-  - Full backend: **107 PASS**
+  - Full backend: **108 PASS**
+  - Integration regression mở lại Requirement đã lưu: **PASS**
   - Manual mở lại `REQ #5`: **PASS**
-- Trạng thái: **CLOSED**
+- Trạng thái: **RETEST PASS - READY TO CLOSE**
 
 ## 6. So sánh hai lượt kiểm thử
 
 | Hạng mục | Lượt 1 - Tuần 08 | Lượt 2 - Tuần 09 |
 |---|---|---|
-| Full backend automated suite | 105 PASS | 107 PASS |
-| Integration suite | 15 PASS | 15 PASS |
+| Full backend automated suite | 105 PASS | 108 PASS |
+| Integration suite | 15 PASS | 16 PASS |
 | Manual luồng chính | Smoke PASS, còn NOT RUN | Regression đại diện PASS |
 | BR-08 manual | Có bằng chứng | PASS lại bằng API/UI |
 | Version Restore manual | Chưa thực hiện lại | PASS |
@@ -166,7 +167,7 @@ Chi tiết:
 ## 7. Kết luận lượt 2
 
 Lượt kiểm thử thứ 2 xác nhận các regression chính của hệ thống sau khi sửa
-defect. Automated backend đạt 107 PASS; frontend lint/build và CI đều PASS.
+defect. Automated backend đạt 108 PASS; frontend lint/build và CI đều PASS.
 
 Gold Set sử dụng OpenAI API thật hoàn thành 20/20 generation và tạo 110
 Test Case. Full Coverage Rate đạt 75%; 5 mẫu còn lại đạt PARTIAL và không có

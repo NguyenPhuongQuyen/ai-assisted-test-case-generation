@@ -192,39 +192,63 @@ Kiểm tra lint:
 python -m ruff check src/backend
 ```
 
-Chạy toàn bộ backend test:
+Chạy unit test:
 
 ```bash
-python -m pytest -q
-```
-
-Chạy test kèm coverage:
-
-```bash
-python -m pytest --cov=app --cov-report=term-missing
+PYTHONPATH=src/backend ./.venv/Scripts/python.exe -m pytest src/backend/tests/unit -q
 ```
 
 ### Integration Test
 
-Integration test sử dụng FastAPI application và database test riêng:
+Integration test chỉ chạy trên database riêng:
 
 ```text
 testcase_ai_test
 ```
 
-Database test được tách khỏi database demo.
-
-Các boundary bên ngoài như LLM provider và queue được mock tại vị trí phù hợp để automated test không phụ thuộc dịch vụ ngoài hoặc phát sinh chi phí API.
-
-Kết quả kiểm thử Tuần 08:
+Database demo/dev sử dụng:
 
 ```text
-Integration test: 15 passed, 1 warning
-Backend automated test: 105 passed, 1 warning
-AR-04: PASS
+testcase_ai
 ```
 
-Warning còn lại là deprecation warning và không làm test thất bại.
+Không chạy integration test trực tiếp trên database demo vì fixture integration có thao tác reset dữ liệu.
+
+Trên Windows Git Bash, từ thư mục gốc repository:
+
+```bash
+DEMO_DATABASE_URL="$(grep '^DATABASE_URL=' .env | cut -d= -f2-)"
+TEST_DATABASE_URL="${DEMO_DATABASE_URL/testcase_ai/testcase_ai_test}"
+
+DATABASE_URL="$TEST_DATABASE_URL" \
+PYTHONPATH=src/backend \
+./.venv/Scripts/python.exe \
+-m pytest src/backend/tests/integration -q
+```
+
+Chạy toàn bộ backend test trên database test:
+
+```bash
+DEMO_DATABASE_URL="$(grep '^DATABASE_URL=' .env | cut -d= -f2-)"
+TEST_DATABASE_URL="${DEMO_DATABASE_URL/testcase_ai/testcase_ai_test}"
+
+DATABASE_URL="$TEST_DATABASE_URL" \
+PYTHONPATH=src/backend \
+./.venv/Scripts/python.exe \
+-m pytest src/backend/tests -q
+```
+
+Các boundary bên ngoài như LLM provider được mock trong automated test để unit/integration test không phụ thuộc mạng hoặc phát sinh chi phí API.
+
+Kết quả kiểm thử gần nhất:
+
+```text
+Unit test: 92 passed
+Integration test: 15 passed, 1 warning
+Backend automated test: 107 passed, 1 warning
+```
+
+Warning còn lại là deprecation warning của FastAPI/Starlette TestClient và không làm test thất bại.
 
 ### Frontend
 

@@ -95,6 +95,23 @@ Chi tiết:
 
 ## 5. Defect Tuần 09
 
+### Test case phát hiện / regression defect
+
+| Mã Test Case | Issue | Nội dung kiểm thử | Kết quả |
+|---|---|---|---|
+| `TC-T09-DF-001` | #24 / AP-08 | Gửi nhiều AI generation job liên tiếp và xác nhận Celery worker xử lý qua queue mà không lỗi event loop | PASS |
+| `TC-T09-DF-002` | #25 / TE-16 | Xác nhận integration test chỉ được chạy trên `testcase_ai_test` và bị chặn nếu trỏ sang database demo | PASS |
+| `TC-T09-DF-003` | #26 / BR-08 | Tạo Requirement, gọi danh sách Requirement theo Module và xác nhận QA mở lại được Requirement đã lưu | PASS |
+
+Bằng chứng automated regression:
+
+- `TC-T09-DF-001`: `src/backend/tests/unit/test_generation_task.py`
+- `TC-T09-DF-002`: guard database trong `src/backend/tests/integration/conftest.py`
+- `TC-T09-DF-003`: `test_qa_mo_lai_requirement_da_luu_theo_module` trong
+  `src/backend/tests/integration/test_requirement_flow.py`
+
+
+
 ### DF-T09-01 / Issue #24 - Celery worker lỗi event loop khi xử lý nhiều generation job
 
 - Severity: **Major**

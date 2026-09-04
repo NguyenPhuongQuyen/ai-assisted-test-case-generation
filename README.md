@@ -244,8 +244,8 @@ Kết quả kiểm thử gần nhất:
 
 ```text
 Unit test: 92 passed
-Integration test: 15 passed, 1 warning
-Backend automated test: 107 passed, 1 warning
+Integration test: 16 passed, 1 warning
+Backend automated test: 108 passed, 1 warning
 ```
 
 Warning còn lại là deprecation warning của FastAPI/Starlette TestClient và không làm test thất bại.
@@ -307,7 +307,10 @@ trong `.env`.
 ## Tài liệu kiểm thử hiện tại
 
 - `docs/weekly/Tuan08.md`
+- `docs/weekly/Tuan09.md`
 - `docs/kiem-thu/TC-TUAN08.md`
+- `docs/kiem-thu/TC-TUAN09.md`
+- `docs/kiem-thu/gold-set-report.md`
 - `docs/kiem-thu/matran-truyvet.md`
 - `docs/assets/NGUON.md`
 

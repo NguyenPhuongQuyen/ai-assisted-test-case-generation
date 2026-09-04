@@ -43,3 +43,4 @@ htmlcov/
 *.zip
 
 docs/kiem-thu/newman/
+src/frontend/next-env.d.ts

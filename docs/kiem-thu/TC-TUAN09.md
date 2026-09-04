@@ -140,7 +140,7 @@ Bằng chứng automated regression:
   - lệnh test truyền `DATABASE_URL` test riêng.
 - Fix/documentation commit: `1088e72`
 - Regression:
-  - Integration: **15 PASS**
+  - Integration: **16 PASS**
   - Full backend: **108 PASS**
   - `.env` vẫn trỏ về `testcase_ai`.
 - Trạng thái: **RETEST PASS - READY TO CLOSE**

@@ -170,6 +170,20 @@ Sau khi chạy đầy đủ:
 - Health: `http://127.0.0.1:8001/health`
 - Swagger: `http://127.0.0.1:8001/docs`
 
+## Khởi động nhanh môi trường development
+
+Sau khi đã cài dependencies, cấu hình .env và chạy migration/seed lần đầu, có thể khởi động toàn bộ môi trường bằng một lệnh:
+
+    ./scripts/dev-up.sh
+
+Script khởi động RabbitMQ, FastAPI backend, Celery worker và Next.js frontend. Log runtime được lưu trong .dev/logs/.
+
+Để dừng các service của ứng dụng:
+
+    ./scripts/dev-down.sh
+
+RabbitMQ được giữ chạy vì có thể là service dùng chung trên máy local.
+
 ## Kiểm thử
 
 ### Backend

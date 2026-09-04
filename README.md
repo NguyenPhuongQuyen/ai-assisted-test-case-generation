@@ -51,7 +51,37 @@ PostgreSQL, pgvector và RabbitMQ cần được cài đặt và chạy trước
 
 ## Chạy nhanh
 
-Các lệnh dưới đây sử dụng Git Bash và chạy từ thư mục gốc repository.
+Các lệnh dưới đây sử dụng Git Bash. Điều kiện trước khi chạy: PostgreSQL có pgvector đã được cài, RabbitMQ đã được cài; role/database local đã được chuẩn bị khớp với `DATABASE_URL` trong `.env.example` hoặc theo mục hướng dẫn chi tiết bên dưới.
+
+Từ lúc clone repository đến khi mở trang chủ gồm đúng 5 lệnh:
+
+```bash
+git clone https://github.com/NguyenPhuongQuyen/ai-assisted-test-case-generation.git && cd ai-assisted-test-case-generation
+```
+
+```bash
+cp .env.example .env && python -m venv .venv && ./.venv/Scripts/python.exe -m pip install -r src/backend/requirements.txt && cd src/frontend && npm install && cp .env.example .env.local && cd ../..
+```
+
+```bash
+./.venv/Scripts/python.exe -m alembic -c src/backend/alembic.ini upgrade head && PYTHONPATH=src/backend ./.venv/Scripts/python.exe src/backend/scripts/seed_demo.py
+```
+
+```bash
+./scripts/dev-up.sh
+```
+
+```bash
+./.venv/Scripts/python.exe -c "import webbrowser; webbrowser.open('http://localhost:3000')"
+```
+
+Sau lệnh thứ 5, trang chủ mở tại `http://localhost:3000`.
+
+Nếu máy chưa có PostgreSQL/pgvector hoặc role/database local, thực hiện một lần theo phần hướng dẫn chi tiết. Đây là prerequisite của môi trường, không yêu cầu sửa source code.
+
+Không commit `.env`, API key, access token hoặc secret thật vào repository.
+
+## Hướng dẫn chi tiết
 
 ### 1. Chuẩn bị backend
 
@@ -302,21 +332,35 @@ Pull Request chỉ được merge khi các kiểm tra CI bắt buộc hoàn thà
 
 ## Tài khoản demo local
 
-Sau khi chạy seed:
+Sau khi chạy seed, có thể đăng nhập ngay bằng các tài khoản demo:
 
-- Admin: `admin@example.com`
-- Manager: `manager@example.com`
-- QA: `qa@example.com`
+| Vai trò | Email | Password mặc định |
+|---|---|---|
+| Admin | `admin@example.com` | `Demo_Change_Me_123!` |
+| Manager | `manager@example.com` | `Demo_Change_Me_123!` |
+| QA | `qa@example.com` | `Demo_Change_Me_123!` |
 
-Password lấy từ biến:
+Password mặc định lấy từ biến `DEMO_USER_PASSWORD` trong `.env.example`.
 
-```text
-DEMO_USER_PASSWORD
-```
+Nếu thay đổi `DEMO_USER_PASSWORD` trong `.env` trước khi chạy seed thì các tài khoản demo sẽ sử dụng password mới.
 
-trong `.env`.
+## Ảnh minh họa hệ thống
 
-`.env.example` chỉ chứa giá trị mẫu vô hại phục vụ cài đặt local.
+### Requirement và AI workspace
+
+![Requirement đã lưu](docs/assets/week07/03-requirement-srs-saved.jpg)
+
+### Human-in-the-loop review
+
+![HITL Needs Fix](docs/assets/week07/04-hitl-review-needs-fix.jpg)
+
+### Module và Coverage
+
+![Module Coverage](docs/assets/week07/07-module-coverage.jpg)
+
+### Swagger / OpenAPI
+
+![Swagger API](docs/assets/week07/01-swagger-api-overview-1.png)
 
 ## Tài liệu kiểm thử hiện tại
 

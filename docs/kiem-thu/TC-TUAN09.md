@@ -93,7 +93,39 @@ Chi tiết:
 - `docs/kiem-thu/gold-set-evidence.jsonl`
 - `docs/kiem-thu/gold-set-report.md`
 
-## 5. Defect Tuần 09
+## 5. Newman API smoke test
+
+Newman được chạy trên môi trường local với FastAPI, PostgreSQL, RabbitMQ và Celery đang hoạt động.
+
+- Ngày chạy: 04/09/2026
+- Source commit tại thời điểm chạy: `5e47153`
+- Newman: `6.2.2`
+- Collection: `docs/kiem-thu/Tuan09_Newman.postman_collection.json`
+- Base URL: `http://127.0.0.1:8001`
+- Requests: **6 executed / 0 failed**
+- Test scripts: **5 executed / 0 failed**
+- Assertions: **6 executed / 0 failed**
+- Tổng thời gian chạy: **952 ms**
+- Average response time: **78 ms**
+- Min response time: **3 ms**
+- Max response time: **380 ms**
+
+Các request đã kiểm tra:
+
+1. Health -> HTTP 200.
+2. QA login hợp lệ -> HTTP 200.
+3. QA tạo Requirement -> HTTP 201.
+4. Submit Generation Job -> HTTP 202 và có job được tạo.
+5. Requirement dùng Module không tồn tại -> HTTP 404.
+6. Gọi API không có token -> HTTP 401.
+
+Kết quả: **PASS - 6/6 request và 6/6 assertion, 0 failure**.
+
+Newman được dùng làm API smoke/integration evidence. Các nghiệp vụ sâu hơn như HITL, BR-08, duplicate, export, version và authorization record-level tiếp tục được kiểm chứng bởi pytest integration và manual regression, tránh phụ thuộc chuỗi request giữa các test case.
+
+Raw Newman report có thể chứa token runtime nên không được commit vào repository.
+
+## 6. Defect Tuần 09
 
 ### Test case phát hiện / regression defect
 
@@ -165,7 +197,7 @@ Bằng chứng automated regression:
   - Manual mở lại `REQ #5`: **PASS**
 - Trạng thái: **RETEST PASS - READY TO CLOSE**
 
-## 6. So sánh hai lượt kiểm thử
+## 7. So sánh hai lượt kiểm thử
 
 | Hạng mục | Lượt 1 - Tuần 08 | Lượt 2 - Tuần 09 |
 |---|---|---|
@@ -181,7 +213,7 @@ Bằng chứng automated regression:
 | AI KPI | Chưa đo | Đã đo |
 | CI | PASS | PASS |
 
-## 7. Kết luận lượt 2
+## 8. Kết luận lượt 2
 
 Lượt kiểm thử thứ 2 xác nhận các regression chính của hệ thống sau khi sửa
 defect. Automated backend đạt 108 PASS; frontend lint/build và CI đều PASS.

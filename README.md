@@ -23,6 +23,22 @@
 - Frontend giao tiếp với backend qua REST API `/api/v1`.
 - PostgreSQL lưu dữ liệu nghiệp vụ; pgvector hỗ trợ embedding và Duplicate Detection.
 
+## pgvector và Duplicate Detection
+
+Hệ thống sử dụng PostgreSQL `pgvector` để phát hiện các test case tương tự theo NC-05.
+
+- Embedding model: `text-embedding-3-small`
+- Số chiều embedding: `1536`
+- Độ tương tự: cosine similarity
+- Ngưỡng duplicate mặc định: `0.85`
+- Vector index: HNSW với `vector_cosine_ops`
+- Index trong database: `ix_test_cases_embedding_hnsw`
+- Rebuild embedding: `PYTHONPATH=src/backend python src/backend/scripts/rebuild_embeddings.py --batch-size 50`
+
+Migration `0004_week07_pgvector_duplicates` bật extension `vector`, thêm cột embedding và tạo HNSW index.
+
+Lệnh rebuild sử dụng Embedding API nên yêu cầu cấu hình API key hợp lệ trong file `.env` cục bộ.
+
 ## Yêu cầu môi trường
 
 - Python 3.11+
@@ -35,7 +51,37 @@ PostgreSQL, pgvector và RabbitMQ cần được cài đặt và chạy trước
 
 ## Chạy nhanh
 
-Các lệnh dưới đây sử dụng Git Bash và chạy từ thư mục gốc repository.
+Các lệnh dưới đây sử dụng Git Bash. Điều kiện trước khi chạy: PostgreSQL có pgvector đã được cài, RabbitMQ đã được cài; role/database local đã được chuẩn bị khớp với `DATABASE_URL` trong `.env.example` hoặc theo mục hướng dẫn chi tiết bên dưới.
+
+Từ lúc clone repository đến khi mở trang chủ gồm đúng 5 lệnh:
+
+```bash
+git clone https://github.com/NguyenPhuongQuyen/ai-assisted-test-case-generation.git && cd ai-assisted-test-case-generation
+```
+
+```bash
+cp .env.example .env && python -m venv .venv && ./.venv/Scripts/python.exe -m pip install -r src/backend/requirements.txt && cd src/frontend && npm install && cp .env.example .env.local && cd ../..
+```
+
+```bash
+./.venv/Scripts/python.exe -m alembic -c src/backend/alembic.ini upgrade head && PYTHONPATH=src/backend ./.venv/Scripts/python.exe src/backend/scripts/seed_demo.py
+```
+
+```bash
+./scripts/dev-up.sh
+```
+
+```bash
+./.venv/Scripts/python.exe -c "import webbrowser; webbrowser.open('http://localhost:3000')"
+```
+
+Sau lệnh thứ 5, trang chủ mở tại `http://localhost:3000`.
+
+Nếu máy chưa có PostgreSQL/pgvector hoặc role/database local, thực hiện một lần theo phần hướng dẫn chi tiết. Đây là prerequisite của môi trường, không yêu cầu sửa source code.
+
+Không commit `.env`, API key, access token hoặc secret thật vào repository.
+
+## Hướng dẫn chi tiết
 
 ### 1. Chuẩn bị backend
 
@@ -154,6 +200,20 @@ Sau khi chạy đầy đủ:
 - Health: `http://127.0.0.1:8001/health`
 - Swagger: `http://127.0.0.1:8001/docs`
 
+## Khởi động nhanh môi trường development
+
+Sau khi đã cài dependencies, cấu hình .env và chạy migration/seed lần đầu, có thể khởi động toàn bộ môi trường bằng một lệnh:
+
+    ./scripts/dev-up.sh
+
+Script khởi động RabbitMQ, FastAPI backend, Celery worker và Next.js frontend. Log runtime được lưu trong .dev/logs/.
+
+Để dừng các service của ứng dụng:
+
+    ./scripts/dev-down.sh
+
+RabbitMQ được giữ chạy vì có thể là service dùng chung trên máy local.
+
 ## Kiểm thử
 
 ### Backend
@@ -176,39 +236,63 @@ Kiểm tra lint:
 python -m ruff check src/backend
 ```
 
-Chạy toàn bộ backend test:
+Chạy unit test:
 
 ```bash
-python -m pytest -q
-```
-
-Chạy test kèm coverage:
-
-```bash
-python -m pytest --cov=app --cov-report=term-missing
+PYTHONPATH=src/backend ./.venv/Scripts/python.exe -m pytest src/backend/tests/unit -q
 ```
 
 ### Integration Test
 
-Integration test sử dụng FastAPI application và database test riêng:
+Integration test chỉ chạy trên database riêng:
 
 ```text
 testcase_ai_test
 ```
 
-Database test được tách khỏi database demo.
-
-Các boundary bên ngoài như LLM provider và queue được mock tại vị trí phù hợp để automated test không phụ thuộc dịch vụ ngoài hoặc phát sinh chi phí API.
-
-Kết quả kiểm thử Tuần 08:
+Database demo/dev sử dụng:
 
 ```text
-Integration test: 15 passed, 1 warning
-Backend automated test: 105 passed, 1 warning
-AR-04: PASS
+testcase_ai
 ```
 
-Warning còn lại là deprecation warning và không làm test thất bại.
+Không chạy integration test trực tiếp trên database demo vì fixture integration có thao tác reset dữ liệu.
+
+Trên Windows Git Bash, từ thư mục gốc repository:
+
+```bash
+DEMO_DATABASE_URL="$(grep '^DATABASE_URL=' .env | cut -d= -f2-)"
+TEST_DATABASE_URL="${DEMO_DATABASE_URL/testcase_ai/testcase_ai_test}"
+
+DATABASE_URL="$TEST_DATABASE_URL" \
+PYTHONPATH=src/backend \
+./.venv/Scripts/python.exe \
+-m pytest src/backend/tests/integration -q
+```
+
+Chạy toàn bộ backend test trên database test:
+
+```bash
+DEMO_DATABASE_URL="$(grep '^DATABASE_URL=' .env | cut -d= -f2-)"
+TEST_DATABASE_URL="${DEMO_DATABASE_URL/testcase_ai/testcase_ai_test}"
+
+DATABASE_URL="$TEST_DATABASE_URL" \
+PYTHONPATH=src/backend \
+./.venv/Scripts/python.exe \
+-m pytest src/backend/tests -q
+```
+
+Các boundary bên ngoài như LLM provider được mock trong automated test để unit/integration test không phụ thuộc mạng hoặc phát sinh chi phí API.
+
+Kết quả kiểm thử gần nhất:
+
+```text
+Unit test: 92 passed
+Integration test: 16 passed, 1 warning
+Backend automated test: 108 passed, 1 warning
+```
+
+Warning còn lại là deprecation warning của FastAPI/Starlette TestClient và không làm test thất bại.
 
 ### Frontend
 
@@ -248,26 +332,43 @@ Pull Request chỉ được merge khi các kiểm tra CI bắt buộc hoàn thà
 
 ## Tài khoản demo local
 
-Sau khi chạy seed:
+Sau khi chạy seed, có thể đăng nhập ngay bằng các tài khoản demo:
 
-- Admin: `admin@example.com`
-- Manager: `manager@example.com`
-- QA: `qa@example.com`
+| Vai trò | Email | Password mặc định |
+|---|---|---|
+| Admin | `admin@example.com` | `Demo_Change_Me_123!` |
+| Manager | `manager@example.com` | `Demo_Change_Me_123!` |
+| QA | `qa@example.com` | `Demo_Change_Me_123!` |
 
-Password lấy từ biến:
+Password mặc định lấy từ biến `DEMO_USER_PASSWORD` trong `.env.example`.
 
-```text
-DEMO_USER_PASSWORD
-```
+Nếu thay đổi `DEMO_USER_PASSWORD` trong `.env` trước khi chạy seed thì các tài khoản demo sẽ sử dụng password mới.
 
-trong `.env`.
+## Ảnh minh họa hệ thống
 
-`.env.example` chỉ chứa giá trị mẫu vô hại phục vụ cài đặt local.
+### Requirement và AI workspace
+
+![Requirement đã lưu](docs/assets/week07/03-requirement-srs-saved.jpg)
+
+### Human-in-the-loop review
+
+![HITL Needs Fix](docs/assets/week07/04-hitl-review-needs-fix.jpg)
+
+### Module và Coverage
+
+![Module Coverage](docs/assets/week07/07-module-coverage.jpg)
+
+### Swagger / OpenAPI
+
+![Swagger API](docs/assets/week07/01-swagger-api-overview-1.png)
 
 ## Tài liệu kiểm thử hiện tại
 
 - `docs/weekly/Tuan08.md`
+- `docs/weekly/Tuan09.md`
 - `docs/kiem-thu/TC-TUAN08.md`
+- `docs/kiem-thu/TC-TUAN09.md`
+- `docs/kiem-thu/gold-set-report.md`
 - `docs/kiem-thu/matran-truyvet.md`
 - `docs/assets/NGUON.md`
 

@@ -57,9 +57,12 @@ class GenerationJobService:
         requirement = await self._requirements.get_by_id(requirement_id)
         if requirement is None:
             raise AppError(ErrorCode.REQUIREMENT_NOT_FOUND, "Không tìm thấy yêu cầu.", 404)
-        allowed_roles = {UserRole.MANAGER, UserRole.ADMIN}
-        if requirement.created_by != current_user.id and current_user.role not in allowed_roles:
-            raise AppError(ErrorCode.FORBIDDEN_RECORD, "Bạn không có quyền truy cập yêu cầu này.", 403)
+        if current_user.role != UserRole.QA or requirement.created_by != current_user.id:
+            raise AppError(
+                ErrorCode.FORBIDDEN_RECORD,
+                "Chỉ QA sở hữu yêu cầu mới được sinh test case.",
+                403,
+            )
         return requirement
 
     async def _enqueue_or_fail(self, job: GenerationJob, requirement_id: int, user_id: int) -> None:

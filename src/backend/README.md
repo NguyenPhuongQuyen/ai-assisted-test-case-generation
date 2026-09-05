@@ -63,7 +63,7 @@ Migration hiện tại đi từ baseline `0001` đến `0010_module_name_unique`
 Backend API:
 
 ```bash
-python -m uvicorn app.main:app --reload --app-dir src/backend
+python -m uvicorn app.main:app --reload --app-dir src/backend --host 127.0.0.1 --port 8001
 ```
 
 Celery worker (Windows Git Bash, chạy từ thư mục gốc repo):
@@ -72,7 +72,7 @@ Celery worker (Windows Git Bash, chạy từ thư mục gốc repo):
 PYTHONPATH=src/backend ./.venv/Scripts/python.exe -m celery -A app.worker.celery_app worker --loglevel=INFO --pool=solo
 ```
 
-Swagger: `http://localhost:8000/docs`.
+Swagger: `http://127.0.0.1:8001/docs`.
 
 ## Kiểm tra
 

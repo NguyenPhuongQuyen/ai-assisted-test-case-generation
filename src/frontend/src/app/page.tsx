@@ -15,6 +15,12 @@ import type { AuthResponse, User } from "@/types/api";
 
 const USER_KEY = "testcase_ai_user";
 
+function defaultWorkspace(role: User["role"]): WorkspaceKey {
+  if (role === USER_ROLE.ADMIN) return "admin";
+  if (role === USER_ROLE.MANAGER) return "modules";
+  return "requirements";
+}
+
 function readStoredUser(): User | null {
   if (typeof window === "undefined") return null;
   const raw = window.localStorage.getItem(USER_KEY);
@@ -34,8 +40,10 @@ export default function HomePage() {
 
   useEffect(() => {
     queueMicrotask(() => {
+      const storedUser = readStoredUser();
       setToken(readToken() ?? "");
-      setUser(readStoredUser());
+      setUser(storedUser);
+      if (storedUser) setWorkspace(defaultWorkspace(storedUser.role));
       setReady(true);
     });
   }, []);
@@ -44,7 +52,7 @@ export default function HomePage() {
     setToken(session.access_token);
     setUser(session.user);
     window.localStorage.setItem(USER_KEY, JSON.stringify(session.user));
-    setWorkspace(session.user.role === USER_ROLE.ADMIN ? "admin" : "requirements");
+    setWorkspace(defaultWorkspace(session.user.role));
   }
 
   function logout() {

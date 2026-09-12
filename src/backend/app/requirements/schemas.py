@@ -29,3 +29,10 @@ class RequirementResponse(BaseModel):
     content: str
     acceptance_criteria: str | None
     lock_version: int
+
+
+class RequirementListResponse(BaseModel):
+    data: list[RequirementResponse]
+    page: int
+    page_size: int
+    total: int

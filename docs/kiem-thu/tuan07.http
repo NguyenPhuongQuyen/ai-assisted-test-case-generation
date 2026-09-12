@@ -7,7 +7,7 @@
 # - Expected HTTP status và required response fields được ghi ngay phía trên request.
 # - Các giá trị token/password thật chỉ thay trong bản local không commit.
 
-@baseUrl = http://127.0.0.1:8000/api/v1
+@baseUrl = http://127.0.0.1:8001/api/v1
 @token = REPLACE_WITH_LOCAL_BEARER_TOKEN
 @moduleId = 1
 @requirementId = 1

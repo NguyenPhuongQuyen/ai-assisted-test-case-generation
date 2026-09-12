@@ -111,3 +111,36 @@ def test_qa_khong_duoc_tao_module(
     )
 
     assert response.status_code == 403
+
+
+def test_qa_mo_lai_requirement_da_luu_theo_module(
+    client: TestClient,
+    login: Callable[[str], dict[str, str]],
+) -> None:
+    module_id, requirement_id = create_requirement_data(
+        client,
+        login,
+    )
+    qa_headers = login("qa.integration@example.com")
+
+    response = client.get(
+        "/api/v1/requirements",
+        headers=qa_headers,
+        params={
+            "module_id": module_id,
+            "page": 1,
+            "page_size": 100,
+        },
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["total"] == 1
+    assert len(body["data"]) == 1
+
+    requirement = body["data"][0]
+    assert requirement["id"] == requirement_id
+    assert requirement["module_id"] == module_id
+    assert requirement["lock_version"] == 1
+    assert requirement["content"] == "Nguoi dung co the tao booking khi thong tin bat buoc deu hop le."

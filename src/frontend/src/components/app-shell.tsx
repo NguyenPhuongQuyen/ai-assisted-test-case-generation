@@ -23,10 +23,14 @@ const labels: Record<WorkspaceKey, string> = {
   admin: "System Config",
 };
 
+const workspacesByRole: Record<User["role"], WorkspaceKey[]> = {
+  [USER_ROLE.QA]: ["requirements", "testcases", "modules"],
+  [USER_ROLE.MANAGER]: ["testcases", "modules"],
+  [USER_ROLE.ADMIN]: ["admin"],
+};
+
 export function AppShell({ user, active, onChange, onLogout, children }: AppShellProps) {
-  const workspaces = (Object.keys(labels) as WorkspaceKey[]).filter(
-    (key) => key !== "admin" || user.role === USER_ROLE.ADMIN,
-  );
+  const workspaces = workspacesByRole[user.role];
   return (
     <div className="app-shell">
       <aside className="sidebar">

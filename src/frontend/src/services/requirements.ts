@@ -1,6 +1,21 @@
 import type { RequirementRecord } from "@/types/api";
 import { apiRequest } from "./api";
 
+interface RequirementListResponse {
+  data: RequirementRecord[];
+  page: number;
+  page_size: number;
+  total: number;
+}
+
+export function listRequirements(token: string, moduleId: number): Promise<RequirementListResponse> {
+  return apiRequest<RequirementListResponse>(
+    `/requirements?module_id=${moduleId}&page=1&page_size=100`,
+    { method: "GET" },
+    token,
+  );
+}
+
 export function createRequirement(
   token: string,
   moduleId: number,

@@ -69,6 +69,38 @@ class RequirementService:
         )
         return requirement
 
+    async def list_requirements(
+        self,
+        module_id: int,
+        page: int,
+        page_size: int,
+        current_user: CurrentUser,
+    ) -> tuple[list[Requirement], int]:
+        """List requirements owned by the current QA in one module.
+
+        Args:
+            module_id: Module used to filter requirements.
+            page: One-based page number.
+            page_size: Maximum records returned per page.
+            current_user: Authenticated QA user.
+
+        Returns:
+            Requirement records and total matching count.
+
+        Raises:
+            AppError: When role or module validation fails.
+        """
+        self._require_qa(current_user)
+        if await self._modules.get_by_id(module_id) is None:
+            raise AppError(ErrorCode.MODULE_NOT_FOUND, "Không tìm thấy module đã chọn.", 404)
+
+        return await self._requirements.list_by_module_and_creator(
+            module_id,
+            current_user.id,
+            page,
+            page_size,
+        )
+
     async def update_requirement(
         self,
         requirement_id: int,

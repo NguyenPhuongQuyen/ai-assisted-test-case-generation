@@ -1,4 +1,4 @@
-@baseUrl = http://localhost:8000
+@baseUrl = http://127.0.0.1:8001
 @token = PASTE_QA_TOKEN_HERE
 @requirementId = 1
 

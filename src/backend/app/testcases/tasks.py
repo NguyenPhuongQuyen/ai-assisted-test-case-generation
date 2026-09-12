@@ -126,6 +126,9 @@ async def _run_generation_job(job_id: int) -> None:
             )
 
 
+_worker_runner = asyncio.Runner()
+
+
 @shared_task(name=GENERATION_TASK_NAME)
 def generate_test_cases_task(job_id: int) -> None:
-    asyncio.run(_run_generation_job(job_id))
+    _worker_runner.run(_run_generation_job(job_id))

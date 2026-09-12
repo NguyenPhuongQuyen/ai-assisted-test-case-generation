@@ -6,7 +6,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 
 import { ApiError } from "@/services/api";
 import { listModules } from "@/services/modules";
-import { createRequirement, updateRequirement } from "@/services/requirements";
+import { createRequirement, listRequirements, updateRequirement } from "@/services/requirements";
 import { generateTestCases, getGenerationJob } from "@/services/testcases";
 import type { GenerationJob, ModuleRecord, RequirementRecord, User } from "@/types/api";
 import { JobPanel, RequirementHeader, RequirementModuleField } from "./requirement-view-parts";
@@ -56,13 +56,65 @@ function useModules(token: string) {
   return { modules, moduleId, setModuleId, loading, error };
 }
 
-function useRequirementForm(token: string, moduleId: number) {
+function useRequirements(token: string, moduleId: number) {
+  const [requirements, setRequirements] = useState<RequirementRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    if (!moduleId) {
+      setRequirements([]);
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await listRequirements(token, moduleId);
+      setRequirements(response.data);
+    } catch (requestError) {
+      setError(toMessage(requestError));
+    } finally {
+      setLoading(false);
+    }
+  }, [token, moduleId]);
+
+  useEffect(() => {
+    queueMicrotask(() => void load());
+  }, [load]);
+
+  return { requirements, loading, error, load };
+}
+
+function useRequirementForm(token: string, moduleId: number, reloadRequirements: () => Promise<void>) {
   const [content, setContent] = useState("");
   const [criteria, setCriteria] = useState("");
   const [current, setCurrent] = useState<RequirementRecord | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
+  const startNew = useCallback(() => {
+    setContent("");
+    setCriteria("");
+    setCurrent(null);
+    setError("");
+    setNotice("");
+  }, []);
+
+  function selectRequirement(requirement: RequirementRecord) {
+    setCurrent(requirement);
+    setContent(requirement.content);
+    setCriteria(requirement.acceptance_criteria ?? "");
+    setError("");
+    setNotice("");
+  }
+
+  useEffect(() => {
+    queueMicrotask(startNew);
+  }, [moduleId, startNew]);
+
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
@@ -73,6 +125,7 @@ function useRequirementForm(token: string, moduleId: number) {
         ? await updateRequirement(token, current, content, criteria)
         : await createRequirement(token, moduleId, content, criteria);
       setCurrent(saved);
+      await reloadRequirements();
       setNotice(
         current ? "Requirement đã được cập nhật. Các test case liên quan cần được rà soát lại." : "Đã lưu requirement.",
       );
@@ -82,7 +135,19 @@ function useRequirementForm(token: string, moduleId: number) {
       setSaving(false);
     }
   }
-  return { content, setContent, criteria, setCriteria, current, saving, error, notice, save };
+  return {
+    content,
+    setContent,
+    criteria,
+    setCriteria,
+    current,
+    saving,
+    error,
+    notice,
+    save,
+    startNew,
+    selectRequirement,
+  };
 }
 
 function useGeneration(token: string, requirement: RequirementRecord | null) {
@@ -90,6 +155,7 @@ function useGeneration(token: string, requirement: RequirementRecord | null) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
   async function generate() {
     if (!requirement) return;
     setBusy(true);
@@ -116,7 +182,8 @@ function useGeneration(token: string, requirement: RequirementRecord | null) {
 
 export function RequirementWorkspace({ token, user }: RequirementWorkspaceProps) {
   const moduleState = useModules(token);
-  const form = useRequirementForm(token, moduleState.moduleId);
+  const requirementState = useRequirements(token, moduleState.moduleId);
+  const form = useRequirementForm(token, moduleState.moduleId, requirementState.load);
   const generation = useGeneration(token, form.current);
   if (user.role !== USER_ROLE.QA)
     return <StateBlock empty emptyText="Theo SRS, Requirement input và AI generation là luồng của QA." />;
@@ -128,6 +195,7 @@ export function RequirementWorkspace({ token, user }: RequirementWorkspaceProps)
         setModuleId={moduleState.setModuleId}
         loading={moduleState.loading}
         moduleError={moduleState.error}
+        requirementState={requirementState}
         form={form}
         generation={generation}
       />
@@ -142,6 +210,7 @@ interface RequirementPanelProps {
   setModuleId: (id: number) => void;
   loading: boolean;
   moduleError: string;
+  requirementState: ReturnType<typeof useRequirements>;
   form: ReturnType<typeof useRequirementForm>;
   generation: ReturnType<typeof useGeneration>;
 }
@@ -163,7 +232,7 @@ function RequirementPanel(props: RequirementPanelProps) {
 
       <StateBlock
         loading={props.loading}
-        error={props.moduleError || props.form.error}
+        error={props.moduleError || props.requirementState.error || props.form.error}
         empty={!props.loading && props.modules.length === 0}
         emptyText="Chưa có module. Nhờ Manager tạo module trước."
       />
@@ -173,6 +242,7 @@ function RequirementPanel(props: RequirementPanelProps) {
           modules={props.modules}
           moduleId={props.moduleId}
           setModuleId={props.setModuleId}
+          requirementState={props.requirementState}
           form={props.form}
           generation={props.generation}
           contentError={contentError}
@@ -186,6 +256,7 @@ interface RequirementFormProps {
   modules: ModuleRecord[];
   moduleId: number;
   setModuleId: (id: number) => void;
+  requirementState: ReturnType<typeof useRequirements>;
   form: ReturnType<typeof useRequirementForm>;
   generation: ReturnType<typeof useGeneration>;
   contentError: string;
@@ -198,8 +269,41 @@ function RequirementForm(props: RequirementFormProps) {
         modules={props.modules}
         moduleId={props.moduleId}
         setModuleId={props.setModuleId}
-        disabled={Boolean(props.form.current)}
+        disabled={false}
       />
+
+      <label>
+        Requirement đã lưu
+        <select
+          disabled={props.requirementState.loading}
+          value={props.form.current?.id ?? 0}
+          onChange={(event) => {
+            const requirementId = Number(event.target.value);
+
+            if (requirementId === 0) {
+              props.form.startNew();
+              return;
+            }
+
+            const selected = props.requirementState.requirements.find(
+              (requirement) => requirement.id === requirementId,
+            );
+
+            if (selected) props.form.selectRequirement(selected);
+          }}
+        >
+          <option value={0}>+ Tạo Requirement mới</option>
+          {props.requirementState.requirements.map((requirement) => (
+            <option key={requirement.id} value={requirement.id}>
+              {`REQ #${requirement.id} · v${requirement.lock_version} · ${requirement.content.slice(0, 70)}`}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {!props.requirementState.loading && props.requirementState.requirements.length === 0 ? (
+        <div className="muted-text">Module này chưa có requirement đã lưu.</div>
+      ) : null}
 
       <RequirementTextFields form={props.form} contentError={props.contentError} />
 

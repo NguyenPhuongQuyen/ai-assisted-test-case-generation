@@ -41,3 +41,7 @@ htmlcov/
 
 # Local generated artifacts
 *.zip
+
+docs/kiem-thu/newman/
+src/frontend/next-env.d.ts
+.dev/

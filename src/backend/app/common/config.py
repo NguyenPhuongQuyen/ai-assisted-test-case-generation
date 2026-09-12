@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
     frontend_origin: str = Field(min_length=1)
     log_level: str = "INFO"
-    demo_user_password: str = Field(default="Demo_Change_Me_123!", min_length=10)
+    demo_user_password: str = Field(min_length=10)
 
     @model_validator(mode="after")
     def validate_embedding_dimensions(self) -> "Settings":

@@ -1,392 +1,922 @@
-# Công cụ sinh test case tự động từ đặc tả yêu cầu bằng AI
+# Công cụ sinh Test Case tự động từ đặc tả yêu cầu bằng AI
 
-Đồ án ngành ITEC4401 - Đề tài #13.
+**Đồ án ngành ITEC4401 - Đề tài #13**
 
-## Công nghệ sử dụng
+Hệ thống hỗ trợ quản lý Requirement/SRS, sinh Test Case bằng AI, tạo Test Case thủ công, Human-in-the-loop review, quản lý phiên bản, phát hiện trùng lặp, theo dõi coverage và export Test Case ra CSV/XLSX.
 
-- Frontend: Next.js 16 + TypeScript
-- Backend: FastAPI + Python
-- Database: PostgreSQL + pgvector
-- AI: OpenAI API
-- Background job: Celery
-- Message broker: RabbitMQ
-- CI: GitHub Actions
+---
 
-## Kiến trúc
+## 1. Chức năng chính
 
-- Source nằm trong `src/`, tách rõ `frontend/` và `backend/`.
-- Backend tổ chức theo feature và phân tầng:
-  `Router -> Service -> Repository`.
-- OpenAI/Embedding adapter nằm tại:
-  `src/backend/app/common/ai/`.
-- AI generation được xử lý nền bằng Celery + RabbitMQ.
-- Frontend giao tiếp với backend qua REST API `/api/v1`.
-- PostgreSQL lưu dữ liệu nghiệp vụ; pgvector hỗ trợ embedding và Duplicate Detection.
+- Quản lý người dùng theo vai trò Admin / Manager / QA.
+- Quản lý Module và Requirement.
+- Sinh Test Case từ Requirement bằng OpenAI.
+- Xử lý tác vụ sinh Test Case bất đồng bộ bằng Celery + RabbitMQ.
+- Tạo Test Case thủ công mà không cần OpenAI API.
+- Human-in-the-loop review:
+  - Draft
+  - In Review
+  - Approved
+  - Needs Fix
+  - Rejected
+- Chỉnh sửa Test Case với:
+  - Summary
+  - Priority
+  - Preconditions
+  - Steps
+  - Expected Result
+  - Test Techniques
+  - Review Note
+- Quản lý version của Test Case.
+- Duplicate Detection bằng embedding + pgvector.
+- Theo dõi Requirement Coverage theo Module.
+- Export Test Case đã Approved sang:
+  - CSV
+  - XLSX
+- Health Check cho:
+  - Application
+  - PostgreSQL
+  - RabbitMQ
+- Audit log cho các thao tác quan trọng.
 
-## pgvector và Duplicate Detection
+---
 
-Hệ thống sử dụng PostgreSQL `pgvector` để phát hiện các test case tương tự theo NC-05.
+## 2. Công nghệ sử dụng
 
-- Embedding model: `text-embedding-3-small`
-- Số chiều embedding: `1536`
-- Độ tương tự: cosine similarity
-- Ngưỡng duplicate mặc định: `0.85`
-- Vector index: HNSW với `vector_cosine_ops`
-- Index trong database: `ix_test_cases_embedding_hnsw`
-- Rebuild embedding: `PYTHONPATH=src/backend python src/backend/scripts/rebuild_embeddings.py --batch-size 50`
-
-Migration `0004_week07_pgvector_duplicates` bật extension `vector`, thêm cột embedding và tạo HNSW index.
-
-Lệnh rebuild sử dụng Embedding API nên yêu cầu cấu hình API key hợp lệ trong file `.env` cục bộ.
-
-## Yêu cầu môi trường
+### Backend
 
 - Python 3.11+
-- Node.js 20.9+ (khuyến nghị Node 22 LTS)
-- npm 10+
-- PostgreSQL 15+ với pgvector
+- FastAPI
+- SQLAlchemy Async
+- Alembic
+- PostgreSQL
+- pgvector
+- Celery
+- RabbitMQ
+- OpenAI API
+- Pytest
+- Ruff
+
+### Frontend
+
+- Next.js 16
+- React
+- TypeScript
+- ESLint
+- Prettier
+
+### DevOps / Quality
+
+- Git / GitHub
+- GitHub Actions
+- Automated Unit Test
+- Automated Integration Test
+
+> Project không yêu cầu Docker hoặc PyCharm.  
+> Trên Windows, các script được chạy bằng Git Bash.
+
+---
+
+## 3. Kiến trúc tổng quan
+
+```text
+User
+  |
+  v
+Next.js Frontend
+  |
+  | REST API
+  v
+FastAPI Backend
+  |
+  +--------------------+
+  |                    |
+  v                    v
+PostgreSQL          RabbitMQ
++ pgvector              |
+                        v
+                     Celery
+                        |
+                        v
+                    OpenAI API
+```
+
+Luồng sinh Test Case bằng AI:
+
+```text
+Requirement
+    |
+    v
+FastAPI
+    |
+    v
+Generation Job
+    |
+    v
+RabbitMQ
+    |
+    v
+Celery Worker
+    |
+    v
+OpenAI API
+    |
+    v
+Generated Test Cases
+    |
+    v
+Human Review
+    |
+    v
+Approved / Needs Fix / Rejected
+```
+
+Luồng tạo Test Case thủ công:
+
+```text
+Requirement
+    |
+    v
+Manual Test Case Form
+    |
+    v
+FastAPI
+    |
+    v
+DRAFT Test Case
+    |
+    v
+Version 1
+    |
+    v
+Human Review
+```
+
+---
+
+## 4. Cấu trúc thư mục
+
+```text
+ai-assisted-test-case-generation/
+├── database/
+├── docs/
+│   └── assets/
+│       └── final/
+├── scripts/
+│   ├── dev-up.sh
+│   ├── dev-down.sh
+│   ├── install.sh
+│   ├── init-demo.sh
+│   └── python.sh
+├── src/
+│   ├── backend/
+│   │   ├── app/
+│   │   ├── scripts/
+│   │   ├── tests/
+│   │   ├── alembic/
+│   │   └── requirements.txt
+│   └── frontend/
+├── .env.example
+├── LICENSE
+├── pyproject.toml
+└── README.md
+```
+
+---
+
+# 5. Yêu cầu môi trường
+
+Cài đặt trước:
+
+- Git
+- Git Bash nếu sử dụng Windows
+- Python 3.11+
+- Node.js 20.9+
+- npm
+- PostgreSQL 15+
+- extension `pgvector`
 - RabbitMQ 4+
 
-PostgreSQL, pgvector và RabbitMQ cần được cài đặt và chạy trước khi khởi động hệ thống.
+PostgreSQL và RabbitMQ phải được cài đặt và có thể chạy trên máy.
 
-## Chạy nhanh
-
-Các lệnh dưới đây sử dụng Git Bash. Điều kiện trước khi chạy: PostgreSQL có pgvector đã được cài, RabbitMQ đã được cài; role/database local đã được chuẩn bị khớp với `DATABASE_URL` trong `.env.example` hoặc theo mục hướng dẫn chi tiết bên dưới.
-
-Từ lúc clone repository đến khi mở trang chủ gồm đúng 5 lệnh:
+Kiểm tra nhanh:
 
 ```bash
-git clone https://github.com/NguyenPhuongQuyen/ai-assisted-test-case-generation.git && cd ai-assisted-test-case-generation
+git --version
+python --version
+node --version
+npm --version
 ```
 
-```bash
-cp .env.example .env && python -m venv .venv && ./.venv/Scripts/python.exe -m pip install -r src/backend/requirements.txt && cd src/frontend && npm install && cp .env.example .env.local && cd ../..
-```
+Nếu Windows không nhận `python` nhưng có Python Launcher:
 
 ```bash
-./.venv/Scripts/python.exe -m alembic -c src/backend/alembic.ini upgrade head && PYTHONPATH=src/backend ./.venv/Scripts/python.exe src/backend/scripts/seed_demo.py
+py --version
 ```
+
+Script `install.sh` sẽ tự tìm Python hợp lệ từ:
+
+```text
+python3
+python
+py -3
+```
+
+và chỉ chấp nhận Python từ version 3.11 trở lên.
+
+---
+
+# 6. Chạy nhanh
+
+Quy trình dưới đây đã được kiểm thử lại trên một fresh clone độc lập.
+
+## Bước 1 - Clone repository
+
+```bash
+git clone -b overall https://github.com/NguyenPhuongQuyen/ai-assisted-test-case-generation.git
+cd ai-assisted-test-case-generation
+```
+
+## Bước 2 - Cài dependency và tạo môi trường local
+
+```bash
+./scripts/install.sh
+```
+
+Script tự động:
+
+- tạo `.env` từ `.env.example` nếu chưa có;
+- tạo `src/frontend/.env.local`;
+- tạo Python virtual environment `.venv`;
+- cài Backend dependencies;
+- cài Frontend dependencies.
+
+## Bước 3 - Kiểm tra cấu hình database
+
+Mở file:
+
+```text
+.env
+```
+
+Cấu hình mặc định:
+
+```text
+DATABASE_URL=postgresql+asyncpg://app_user:change_me@localhost:5432/testcase_ai
+```
+
+Nếu PostgreSQL local sử dụng username/password khác thì sửa `DATABASE_URL` cho phù hợp.
+
+Database cần có extension:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+## Bước 4 - Migration và seed demo
+
+```bash
+./scripts/init-demo.sh
+```
+
+Script sẽ:
+
+- chạy Alembic migration;
+- tạo demo data.
+
+Demo seed hiện gồm:
+
+```text
+Users        : 3
+Modules      : 2
+Requirements : 3
+Test cases   : 12
+```
+
+## Bước 5 - Khởi động hệ thống
 
 ```bash
 ./scripts/dev-up.sh
 ```
 
-```bash
-./.venv/Scripts/python.exe -c "import webbrowser; webbrowser.open('http://localhost:3000')"
-```
+Sau khi hệ thống khởi động:
 
-Sau lệnh thứ 5, trang chủ mở tại `http://localhost:3000`.
+| Thành phần | URL |
+|---|---|
+| Frontend | http://localhost:3000 |
+| Backend | http://127.0.0.1:8001 |
+| Swagger | http://127.0.0.1:8001/docs |
+| Health | http://127.0.0.1:8001/health |
 
-Nếu máy chưa có PostgreSQL/pgvector hoặc role/database local, thực hiện một lần theo phần hướng dẫn chi tiết. Đây là prerequisite của môi trường, không yêu cầu sửa source code.
-
-Không commit `.env`, API key, access token hoặc secret thật vào repository.
-
-## Hướng dẫn chi tiết
-
-### 1. Chuẩn bị backend
+Dừng các service của ứng dụng:
 
 ```bash
-{ test -f .env || cp .env.example .env; } && \
-python -m venv .venv && \
-source .venv/Scripts/activate && \
-python -m pip install -r src/backend/requirements.txt
+./scripts/dev-down.sh
 ```
 
-Cập nhật các biến local cần thiết trong `.env`.
+PostgreSQL và RabbitMQ được giữ lại vì đây là service môi trường dùng chung.
 
-Không commit `.env`, API key, access token hoặc secret thật vào repository.
+---
 
-### 2. Migration và seed dữ liệu demo
+# 7. Cấu hình môi trường
+
+File `.env.example`:
+
+```env
+DATABASE_URL=postgresql+asyncpg://app_user:change_me@localhost:5432/testcase_ai
+
+JWT_SECRET=change_me_to_a_long_random_secret_at_least_32_chars
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_MINUTES=60
+
+OPENAI_API_KEY=sk-example-not-a-real-key
+OPENAI_MODEL=gpt-5
+OPENAI_MAX_OUTPUT_TOKENS=4000
+
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+OPENAI_EMBEDDING_DIMENSIONS=1536
+
+DUPLICATE_SIMILARITY_THRESHOLD=0.85
+
+AI_RATE_LIMIT_MAX_REQUESTS=10
+AI_RATE_LIMIT_WINDOW_SECONDS=300
+
+FRONTEND_ORIGIN=http://localhost:3000
+
+LOG_LEVEL=INFO
+
+DEMO_USER_PASSWORD=Demo_Change_Me_123!
+
+CELERY_BROKER_URL=amqp://guest:guest@localhost:5672//
+```
+
+## OpenAI API Key
+
+Muốn sử dụng chức năng sinh Test Case bằng AI hoặc embedding, cập nhật:
+
+```env
+OPENAI_API_KEY=<YOUR_OPENAI_API_KEY>
+```
+
+Không commit API key thật lên GitHub.
+
+Nếu không có OpenAI API key, người dùng vẫn có thể:
+
+- đăng nhập;
+- quản lý Module;
+- quản lý Requirement;
+- tạo Test Case thủ công;
+- review Test Case;
+- quản lý version;
+- export các Test Case hợp lệ.
+
+---
+
+# 8. Tài khoản demo
+
+Sau khi chạy:
 
 ```bash
-source .venv/Scripts/activate && \
-python -m alembic -c src/backend/alembic.ini upgrade head && \
-PYTHONPATH=src/backend python src/backend/scripts/seed_demo.py
+./scripts/init-demo.sh
 ```
 
-### 3. Chạy backend API
-
-Mở một Git Bash:
-
-```bash
-source .venv/Scripts/activate && \
-python -m uvicorn app.main:app \
-  --reload \
-  --app-dir src/backend \
-  --host 127.0.0.1 \
-  --port 8001
-```
-
-Backend:
+có các tài khoản:
 
 ```text
-http://127.0.0.1:8001
+admin@example.com
+manager@example.com
+qa@example.com
 ```
 
-Health check:
+Password mặc định:
 
 ```text
-http://127.0.0.1:8001/health
+Demo_Change_Me_123!
 ```
 
-Swagger/OpenAPI:
+Password được cấu hình qua:
+
+```env
+DEMO_USER_PASSWORD
+```
+
+---
+
+# 9. Health Check
+
+Endpoint:
+
+```text
+GET /health
+```
+
+Ví dụ:
+
+```json
+{
+  "status": "ok",
+  "components": {
+    "application": "ok",
+    "database": "ok",
+    "queue": "ok"
+  }
+}
+```
+
+Health check kiểm tra thực tế:
+
+- FastAPI application;
+- kết nối PostgreSQL;
+- kết nối RabbitMQ.
+
+Nếu dependency quan trọng không hoạt động, endpoint trả HTTP `503`.
+
+![Health Check](docs/assets/final/08_health.jpg)
+
+---
+
+# 10. Requirement và AI Generation
+
+QA có thể chọn Requirement và tạo Generation Job.
+
+Generation Job được đưa qua:
+
+```text
+FastAPI
+→ RabbitMQ
+→ Celery Worker
+→ OpenAI
+→ Test Case
+```
+
+Việc sinh AI chạy bất đồng bộ, frontend có thể theo dõi trạng thái job.
+
+Các trạng thái job gồm:
+
+```text
+pending
+running
+completed
+failed
+```
+
+Ví dụ Generation Job hoàn tất:
+
+![Requirement AI Completed](docs/assets/final/04_requirement_ai_completed.jpg)
+
+---
+
+# 11. Tạo Test Case thủ công
+
+Ngoài AI Generation, hệ thống hỗ trợ tạo Test Case trực tiếp từ Requirement.
+
+Route:
+
+```text
+POST /requirements/{requirement_id}/test-cases/manual
+```
+
+Các trường hỗ trợ:
+
+```text
+Summary
+Preconditions
+Steps
+Expected Result
+Priority
+Test Techniques
+```
+
+Test Case tạo thủ công:
+
+- không gọi OpenAI;
+- không tạo Generation Job;
+- được tạo ở trạng thái `DRAFT`;
+- tự động có Version 1;
+- có thể tiếp tục review như Test Case do AI tạo.
+
+![Manual Test Case Created](docs/assets/final/03_manual_testcase_created.jpg)
+
+---
+
+# 12. Human-in-the-loop Review
+
+QA/Manager có thể review Test Case trước khi sử dụng.
+
+Workflow:
+
+```text
+DRAFT
+  |
+  v
+IN REVIEW
+  |
+  +-----------> APPROVED
+  |
+  +-----------> NEEDS FIX
+  |
+  +-----------> REJECTED
+```
+
+Editor hỗ trợ:
+
+- Summary
+- Priority
+- Preconditions
+- Steps
+- Expected Result
+- Test Techniques
+- Review Note
+
+![Review Test Case](docs/assets/final/05_review_testcase_editor.jpg)
+
+---
+
+# 13. Versioning
+
+Khi Test Case được chỉnh sửa, hệ thống lưu lại lịch sử version.
+
+Mỗi version lưu snapshot của nội dung Test Case.
+
+Chức năng hỗ trợ:
+
+- xem lịch sử version;
+- so sánh version;
+- restore version cũ.
+
+Test Case thủ công mới được tạo có:
+
+```text
+Version 1
+```
+
+---
+
+# 14. Duplicate Detection
+
+Hệ thống hỗ trợ tìm Test Case có nội dung tương đồng bằng:
+
+```text
+OpenAI Embedding
++
+PostgreSQL pgvector
+```
+
+Cấu hình:
+
+```env
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+OPENAI_EMBEDDING_DIMENSIONS=1536
+DUPLICATE_SIMILARITY_THRESHOLD=0.85
+```
+
+Duplicate Detection hỗ trợ reviewer nhận biết và xử lý các Test Case có độ tương đồng cao.
+
+---
+
+# 15. Module Coverage và Export
+
+Module workspace hiển thị:
+
+- tổng số Requirement;
+- Requirement đã được cover;
+- Coverage percentage;
+- số Test Case theo trạng thái.
+
+![Module Coverage](docs/assets/final/06_module_coverage.jpg)
+
+Hệ thống hỗ trợ export các Test Case hợp lệ sang:
+
+```text
+CSV
+XLSX
+```
+
+Export sử dụng database locking để tránh hai request đồng thời export cùng một tập Test Case.
+
+---
+
+# 16. Swagger / OpenAPI
+
+FastAPI tự động cung cấp Swagger UI tại:
 
 ```text
 http://127.0.0.1:8001/docs
 ```
 
-### 4. Chạy Celery worker
+Swagger bao gồm API cho:
 
-Đảm bảo RabbitMQ đang chạy.
+- authentication;
+- users;
+- modules;
+- requirements;
+- AI generation;
+- manual Test Case creation;
+- review;
+- versioning;
+- duplicate detection;
+- export.
 
-Mở một Git Bash khác:
+![Swagger API](docs/assets/final/07_swagger.jpg)
+
+---
+
+# 17. Automated Tests
+
+## Unit Tests
 
 ```bash
-PYTHONPATH=src/backend \
-./.venv/Scripts/python.exe \
-  -m celery \
-  -A app.worker.celery_app \
-  worker \
-  --loglevel=INFO \
-  --pool=solo
+PYTHONPATH=src/backend ./scripts/python.sh -m pytest src/backend/tests/unit -q
 ```
 
-Kiểm tra Celery worker:
-
-```bash
-PYTHONPATH=src/backend \
-./.venv/Scripts/python.exe \
-  -m celery \
-  -A app.worker.celery_app \
-  inspect ping
-```
-
-Kết quả mong đợi:
+Kết quả kiểm thử cuối:
 
 ```text
--> testcase-worker@<hostname>: OK
-    pong
-
-1 node online.
+92 passed
 ```
 
-### 5. Chạy frontend
+## Integration Tests
 
-Mở một Git Bash khác:
-
-```bash
-cd src/frontend && \
-npm install && \
-{ test -f .env.local || cp .env.example .env.local; } && \
-npm run dev
-```
-
-`src/frontend/.env.example` và `.env.local` sử dụng:
-
-```env
-NEXT_PUBLIC_API_URL=http://127.0.0.1:8001/api/v1
-```
-
-Frontend:
-
-```text
-http://localhost:3000
-```
-
-Sau khi chạy đầy đủ:
-
-- Frontend: `http://localhost:3000`
-- Backend: `http://127.0.0.1:8001`
-- Health: `http://127.0.0.1:8001/health`
-- Swagger: `http://127.0.0.1:8001/docs`
-
-## Khởi động nhanh môi trường development
-
-Sau khi đã cài dependencies, cấu hình .env và chạy migration/seed lần đầu, có thể khởi động toàn bộ môi trường bằng một lệnh:
-
-    ./scripts/dev-up.sh
-
-Script khởi động RabbitMQ, FastAPI backend, Celery worker và Next.js frontend. Log runtime được lưu trong .dev/logs/.
-
-Để dừng các service của ứng dụng:
-
-    ./scripts/dev-down.sh
-
-RabbitMQ được giữ chạy vì có thể là service dùng chung trên máy local.
-
-## Kiểm thử
-
-### Backend
-
-Từ thư mục gốc repository:
-
-```bash
-source .venv/Scripts/activate
-```
-
-Kiểm tra format:
-
-```bash
-python -m ruff format --check src/backend
-```
-
-Kiểm tra lint:
-
-```bash
-python -m ruff check src/backend
-```
-
-Chạy unit test:
-
-```bash
-PYTHONPATH=src/backend ./.venv/Scripts/python.exe -m pytest src/backend/tests/unit -q
-```
-
-### Integration Test
-
-Integration test chỉ chạy trên database riêng:
+Integration tests sử dụng database riêng:
 
 ```text
 testcase_ai_test
 ```
 
-Database demo/dev sử dụng:
-
-```text
-testcase_ai
-```
-
-Không chạy integration test trực tiếp trên database demo vì fixture integration có thao tác reset dữ liệu.
-
-Trên Windows Git Bash, từ thư mục gốc repository:
+Ví dụ cấu hình:
 
 ```bash
-DEMO_DATABASE_URL="$(grep '^DATABASE_URL=' .env | cut -d= -f2-)"
-TEST_DATABASE_URL="${DEMO_DATABASE_URL/testcase_ai/testcase_ai_test}"
-
-DATABASE_URL="$TEST_DATABASE_URL" \
-PYTHONPATH=src/backend \
-./.venv/Scripts/python.exe \
--m pytest src/backend/tests/integration -q
+export TEST_DATABASE_URL="postgresql+asyncpg://app_user:change_me@localhost:5432/testcase_ai_test"
 ```
 
-Chạy toàn bộ backend test trên database test:
+Chạy integration tests:
 
 ```bash
-DEMO_DATABASE_URL="$(grep '^DATABASE_URL=' .env | cut -d= -f2-)"
-TEST_DATABASE_URL="${DEMO_DATABASE_URL/testcase_ai/testcase_ai_test}"
-
-DATABASE_URL="$TEST_DATABASE_URL" \
-PYTHONPATH=src/backend \
-./.venv/Scripts/python.exe \
--m pytest src/backend/tests -q
+DATABASE_URL="$TEST_DATABASE_URL" PYTHONPATH=src/backend ./scripts/python.sh -m pytest src/backend/tests/integration -q
 ```
 
-Các boundary bên ngoài như LLM provider được mock trong automated test để unit/integration test không phụ thuộc mạng hoặc phát sinh chi phí API.
-
-Kết quả kiểm thử gần nhất:
+Kết quả:
 
 ```text
-Unit test: 92 passed
-Integration test: 16 passed, 1 warning
-Backend automated test: 108 passed, 1 warning
+18 passed
 ```
 
-Warning còn lại là deprecation warning của FastAPI/Starlette TestClient và không làm test thất bại.
+## Toàn bộ Backend Tests
 
-### Frontend
+```bash
+DATABASE_URL="$TEST_DATABASE_URL" PYTHONPATH=src/backend ./scripts/python.sh -m pytest src/backend/tests -q
+```
+
+Kết quả cuối:
+
+```text
+110 passed
+```
+
+Tổng:
+
+| Nhóm | Kết quả |
+|---|---:|
+| Unit Test | 92 passed |
+| Integration Test | 18 passed |
+| Backend Automated Test | 110 passed |
+
+Một số integration flow được kiểm thử gồm:
+
+- authentication;
+- requirement;
+- testcase lifecycle;
+- AI generation boundary bằng mock;
+- export;
+- concurrent export;
+- manual Test Case creation;
+- versioning;
+- duplicate flow.
+
+---
+
+# 18. Backend Quality Check
+
+Format:
+
+```bash
+./scripts/python.sh -m ruff format --check src/backend
+```
+
+Lint:
+
+```bash
+./scripts/python.sh -m ruff check src/backend
+```
+
+Kết quả cuối:
+
+```text
+122 files already formatted
+All checks passed!
+```
+
+---
+
+# 19. Frontend Quality Check
 
 ```bash
 cd src/frontend
-```
-
-Kiểm tra format:
-
-```bash
 npm run format:check
-```
-
-Kiểm tra lint:
-
-```bash
 npm run lint
-```
-
-Kiểm tra build:
-
-```bash
 npm run build
 ```
 
-## GitHub Actions
-
-Workflow CI nằm tại:
+Kết quả cuối:
 
 ```text
-.github/workflows/ci.yml
+Prettier: PASS
+ESLint: PASS
+Next.js production build: PASS
 ```
 
-GitHub Actions thực hiện kiểm tra backend và frontend khi push hoặc mở Pull Request.
+---
 
-Pull Request chỉ được merge khi các kiểm tra CI bắt buộc hoàn thành thành công.
+# 20. Fresh Clone Verification
 
-## Tài khoản demo local
+Project đã được kiểm thử trên một thư mục clone mới hoàn toàn.
 
-Sau khi chạy seed, có thể đăng nhập ngay bằng các tài khoản demo:
-
-| Vai trò | Email | Password mặc định |
-|---|---|---|
-| Admin | `admin@example.com` | `Demo_Change_Me_123!` |
-| Manager | `manager@example.com` | `Demo_Change_Me_123!` |
-| QA | `qa@example.com` | `Demo_Change_Me_123!` |
-
-Password mặc định lấy từ biến `DEMO_USER_PASSWORD` trong `.env.example`.
-
-Nếu thay đổi `DEMO_USER_PASSWORD` trong `.env` trước khi chạy seed thì các tài khoản demo sẽ sử dụng password mới.
-
-## Ảnh minh họa hệ thống
-
-### Requirement và AI workspace
-
-![Requirement đã lưu](docs/assets/week07/03-requirement-srs-saved.jpg)
-
-### Human-in-the-loop review
-
-![HITL Needs Fix](docs/assets/week07/04-hitl-review-needs-fix.jpg)
-
-### Module và Coverage
-
-![Module Coverage](docs/assets/week07/07-module-coverage.jpg)
-
-### Swagger / OpenAPI
-
-![Swagger API](docs/assets/week07/01-swagger-api-overview-1.png)
-
-## Tài liệu kiểm thử hiện tại
-
-- `docs/weekly/Tuan08.md`
-- `docs/weekly/Tuan09.md`
-- `docs/kiem-thu/TC-TUAN08.md`
-- `docs/kiem-thu/TC-TUAN09.md`
-- `docs/kiem-thu/gold-set-report.md`
-- `docs/kiem-thu/matran-truyvet.md`
-- `docs/assets/NGUON.md`
-
-Chi tiết backend và database:
+Quy trình được xác nhận:
 
 ```text
-src/backend/README.md
+git clone
+    ↓
+./scripts/install.sh
+    ↓
+tạo .env
+    ↓
+tạo .env.local
+    ↓
+tạo .venv
+    ↓
+cài Backend dependencies
+    ↓
+cài Frontend dependencies
+    ↓
+./scripts/init-demo.sh
+    ↓
+Alembic migration
+    ↓
+Demo seed
+    ↓
+./scripts/dev-up.sh
+    ↓
+Frontend + Backend + Celery hoạt động
+    ↓
+Đăng nhập thành công
 ```
 
-## Biến môi trường và bảo mật
+Fresh clone được kiểm thử trên Windows bằng Git Bash mà không phụ thuộc đường dẫn ổ đĩa cụ thể.
 
-- Không commit `.env`.
-- Không commit API key.
-- Không commit access token.
-- Không commit database credential thật.
-- `.env.example` chỉ chứa tên biến và giá trị mẫu vô hại.
-- Secret dùng cho CI phải cấu hình thông qua GitHub Secrets.
+---
 
-## AI hỗ trợ
+# 21. Development Scripts
 
-Skeleton ban đầu của dự án được xây dựng với sự hỗ trợ của ChatGPT (OpenAI) và sau đó được chỉnh sửa, tổ chức, kiểm thử và rà soát theo Quy định Code ITEC4401.
+## Python Wrapper
+
+```bash
+./scripts/python.sh
+```
+
+Script tự tìm Python trong virtual environment:
+
+```text
+.venv/bin/python
+```
+
+hoặc:
+
+```text
+.venv/Scripts/python.exe
+```
+
+Nhờ đó command trong project không phụ thuộc trực tiếp vào hệ điều hành.
+
+## Install
+
+```bash
+./scripts/install.sh
+```
+
+## Initialize Database
+
+```bash
+./scripts/init-demo.sh
+```
+
+## Start Development
+
+```bash
+./scripts/dev-up.sh
+```
+
+## Stop Development
+
+```bash
+./scripts/dev-down.sh
+```
+
+---
+
+# 22. CI
+
+Repository sử dụng GitHub Actions để kiểm tra source code tự động.
+
+Quality gate bao gồm các bước như:
+
+```text
+Backend lint
+Backend tests
+Frontend lint
+Frontend build
+```
+
+Mục tiêu là phát hiện lỗi trước khi merge hoặc release source.
+
+---
+
+# 23. Bảo mật
+
+Các nguyên tắc được áp dụng:
+
+- API key không commit vào Git.
+- `.env` và `.env.local` nằm trong `.gitignore`.
+- JWT secret lấy từ biến môi trường.
+- Password được hash trước khi lưu.
+- Role-based access control cho Admin / Manager / QA.
+- Rate limiting cho AI Generation.
+- Audit log cho các hành động quan trọng.
+- Test database tách biệt với development database.
+- Export chỉ xử lý Test Case phù hợp với workflow.
+- Database transaction/locking được sử dụng cho các thao tác đồng thời quan trọng.
+
+---
+
+# 24. AI Assistance
+
+Trong quá trình phát triển, AI được sử dụng để hỗ trợ:
+
+- phân tích requirement;
+- đề xuất implementation;
+- review source code;
+- viết và cải thiện automated tests;
+- hỗ trợ tài liệu kỹ thuật;
+- debug trong quá trình phát triển.
+
+Các phần source có sử dụng AI assistance được ghi chú theo quy định của môn học khi cần thiết.
+
+AI không thay thế quá trình kiểm thử, review và xác nhận kết quả của người phát triển.
+
+---
+
+# 25. Ảnh minh họa hệ thống
+
+## Tạo Test Case thủ công
+
+![Manual Test Case](docs/assets/final/03_manual_testcase_created.jpg)
+
+## Requirement và AI Generation hoàn tất
+
+![AI Generation](docs/assets/final/04_requirement_ai_completed.jpg)
+
+## Human-in-the-loop Review
+
+![Human Review](docs/assets/final/05_review_testcase_editor.jpg)
+
+## Module Coverage
+
+![Module Coverage](docs/assets/final/06_module_coverage.jpg)
+
+## Swagger / OpenAPI
+
+![Swagger](docs/assets/final/07_swagger.jpg)
+
+## Health Check
+
+![Health](docs/assets/final/08_health.jpg)
+
+---
+
+# 26. License
+
+Project sử dụng MIT License.
+
+Xem chi tiết tại:
+
+```text
+LICENSE
+```
+
+---
+
+# 27. Tác giả
+
+**Nguyễn Phương Quyên**
+
+Đồ án ngành ITEC4401  
+Đề tài #13 - Công cụ sinh Test Case tự động từ đặc tả yêu cầu bằng AI

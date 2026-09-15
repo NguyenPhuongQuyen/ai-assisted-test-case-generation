@@ -34,5 +34,5 @@ class RequirementResponse(BaseModel):
 class RequirementListResponse(BaseModel):
     data: list[RequirementResponse]
     page: int
-    page_size: int
+    page_size: int = Field(serialization_alias="pageSize")
     total: int

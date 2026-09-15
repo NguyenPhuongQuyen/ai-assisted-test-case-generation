@@ -282,7 +282,13 @@ class TestCaseRepository:
         )
         if owner_id is not None:
             statement = statement.where(TestCase.created_by == owner_id)
-        result = await self._session.execute(statement.order_by(TestCase.id.asc()))
+
+        # Lock export candidates until the transaction commits.
+        # This prevents concurrent exports from reading and exporting
+        # the same APPROVED test cases before they become EXPORTED.
+        statement = statement.order_by(TestCase.id.asc()).with_for_update()
+
+        result = await self._session.execute(statement)
         return list(result.scalars().all())
 
     async def list_accessible(

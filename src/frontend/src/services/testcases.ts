@@ -17,6 +17,35 @@ export function generateTestCases(token: string, requirementId: number): Promise
   return apiRequest<GenerationJob>(`/requirements/${requirementId}/test-cases`, { method: "POST" }, token);
 }
 
+export function createManualTestCase(
+  token: string,
+  requirementId: number,
+  input: {
+    summary: string;
+    preconditions: string[];
+    steps: string[];
+    expectedResult: string;
+    priority: Priority;
+    testTechniques: string[];
+  },
+): Promise<TestCaseRecord> {
+  return apiRequest<TestCaseRecord>(
+    `/requirements/${requirementId}/test-cases/manual`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        summary: input.summary,
+        preconditions: input.preconditions,
+        steps: input.steps,
+        expected_result: input.expectedResult,
+        priority: input.priority,
+        test_techniques: input.testTechniques,
+      }),
+    },
+    token,
+  );
+}
+
 export function getGenerationJob(token: string, jobId: number): Promise<GenerationJob> {
   return apiRequest<GenerationJob>(`/generation-jobs/${jobId}`, {}, token);
 }
@@ -29,7 +58,15 @@ export function listTestCases(token: string, status?: TestCaseStatus): Promise<T
 export function updateTestCase(
   token: string,
   record: TestCaseRecord,
-  input: { summary: string; steps: string[]; expectedResult: string; priority: Priority; reviewNote: string },
+  input: {
+    summary: string;
+    preconditions: string[];
+    steps: string[];
+    expectedResult: string;
+    priority: Priority;
+    testTechniques: string[];
+    reviewNote: string;
+  },
 ) {
   return apiRequest<TestCaseRecord>(
     `/test-cases/${record.id}`,
@@ -38,9 +75,11 @@ export function updateTestCase(
       body: JSON.stringify({
         lock_version: record.lock_version,
         summary: input.summary,
+        preconditions: input.preconditions,
         steps: input.steps,
         expected_result: input.expectedResult,
         priority: input.priority,
+        test_techniques: input.testTechniques,
         review_note: input.reviewNote || null,
       }),
     },

@@ -7,7 +7,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { ApiError } from "@/services/api";
 import { listModules } from "@/services/modules";
 import { createRequirement, listRequirements, updateRequirement } from "@/services/requirements";
-import { generateTestCases, getGenerationJob } from "@/services/testcases";
+import { createManualTestCase, generateTestCases, getGenerationJob } from "@/services/testcases";
 import type { GenerationJob, ModuleRecord, RequirementRecord, User } from "@/types/api";
 import { JobPanel, RequirementHeader, RequirementModuleField } from "./requirement-view-parts";
 import { FieldError, StateBlock } from "./state-block";
@@ -199,7 +199,10 @@ export function RequirementWorkspace({ token, user }: RequirementWorkspaceProps)
         form={form}
         generation={generation}
       />
-      <JobPanel job={generation.job} notice={generation.notice} error={generation.error} />
+      <div>
+        <JobPanel job={generation.job} notice={generation.notice} error={generation.error} />
+        <ManualTestCasePanel token={token} requirement={form.current} />
+      </div>
     </div>
   );
 }
@@ -377,5 +380,153 @@ function RequirementActions({
         </button>
       ) : null}
     </div>
+  );
+}
+
+function splitManualLines(value: string): string[] {
+  return value
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function ManualTestCasePanel({ token, requirement }: { token: string; requirement: RequirementRecord | null }) {
+  const [summary, setSummary] = useState("");
+  const [preconditions, setPreconditions] = useState("");
+  const [steps, setSteps] = useState("");
+  const [expectedResult, setExpectedResult] = useState("");
+  const [priority, setPriority] = useState<"high" | "medium" | "low">("medium");
+  const [testTechniques, setTestTechniques] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!requirement) return;
+
+    const parsedSteps = splitManualLines(steps);
+
+    if (summary.trim().length < 3 || parsedSteps.length === 0 || expectedResult.trim().length < 3) {
+      setError("Summary, Steps và Expected Result là bắt buộc.");
+      return;
+    }
+
+    setBusy(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const created = await createManualTestCase(token, requirement.id, {
+        summary: summary.trim(),
+        preconditions: splitManualLines(preconditions),
+        steps: parsedSteps,
+        expectedResult: expectedResult.trim(),
+        priority,
+        testTechniques: splitManualLines(testTechniques),
+      });
+
+      setNotice(`Đã tạo TC #${created.id} ở trạng thái DRAFT. Mở Review Test Case để tiếp tục.`);
+
+      setSummary("");
+      setPreconditions("");
+      setSteps("");
+      setExpectedResult("");
+      setPriority("medium");
+      setTestTechniques("");
+    } catch (requestError) {
+      setError(toMessage(requestError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="panel">
+      <div className="panel-heading">
+        <div>
+          <div className="eyebrow">Không cần OpenAI</div>
+          <h3>Tạo Test Case thủ công</h3>
+        </div>
+      </div>
+
+      {!requirement ? (
+        <StateBlock empty emptyText="Chọn hoặc lưu một Requirement trước khi tạo Test Case thủ công." />
+      ) : (
+        <form className="stack-form" onSubmit={submit}>
+          <div className="muted-text">{`REQ #${requirement.id} · Test Case mới sẽ được tạo ở trạng thái DRAFT.`}</div>
+
+          <label>
+            Summary
+            <input
+              value={summary}
+              onChange={(event) => setSummary(event.target.value)}
+              minLength={3}
+              maxLength={300}
+              required
+            />
+          </label>
+
+          <label>
+            Preconditions
+            <textarea
+              value={preconditions}
+              onChange={(event) => setPreconditions(event.target.value)}
+              rows={3}
+              placeholder="Mỗi precondition một dòng"
+            />
+          </label>
+
+          <label>
+            Steps
+            <textarea
+              value={steps}
+              onChange={(event) => setSteps(event.target.value)}
+              rows={5}
+              placeholder="Mỗi bước một dòng"
+              required
+            />
+          </label>
+
+          <label>
+            Expected Result
+            <textarea
+              value={expectedResult}
+              onChange={(event) => setExpectedResult(event.target.value)}
+              rows={3}
+              minLength={3}
+              required
+            />
+          </label>
+
+          <label>
+            Priority
+            <select value={priority} onChange={(event) => setPriority(event.target.value as "high" | "medium" | "low")}>
+              <option value="high">high</option>
+              <option value="medium">medium</option>
+              <option value="low">low</option>
+            </select>
+          </label>
+
+          <label>
+            Test Techniques
+            <textarea
+              value={testTechniques}
+              onChange={(event) => setTestTechniques(event.target.value)}
+              rows={3}
+              placeholder="Mỗi kỹ thuật kiểm thử một dòng"
+            />
+          </label>
+
+          <button className="secondary-button" disabled={busy} type="submit">
+            {busy ? "Đang tạo..." : "Tạo Test Case thủ công"}
+          </button>
+
+          {error ? <div className="state state-error">{error}</div> : null}
+          {notice ? <div className="state state-success">{notice}</div> : null}
+        </form>
+      )}
+    </section>
   );
 }

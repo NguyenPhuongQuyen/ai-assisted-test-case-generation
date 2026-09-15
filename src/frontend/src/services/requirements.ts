@@ -4,13 +4,13 @@ import { apiRequest } from "./api";
 interface RequirementListResponse {
   data: RequirementRecord[];
   page: number;
-  page_size: number;
+  pageSize: number;
   total: number;
 }
 
 export function listRequirements(token: string, moduleId: number): Promise<RequirementListResponse> {
   return apiRequest<RequirementListResponse>(
-    `/requirements?module_id=${moduleId}&page=1&page_size=100`,
+    `/requirements?module_id=${moduleId}&page=1&pageSize=100`,
     { method: "GET" },
     token,
   );

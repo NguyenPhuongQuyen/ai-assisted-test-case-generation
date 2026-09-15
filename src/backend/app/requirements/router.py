@@ -51,7 +51,7 @@ async def list_requirements(
     session: SessionDep,
     current_user: CurrentUserDep,
     page: Annotated[int, Query(ge=1)] = 1,
-    page_size: Annotated[int, Query(ge=1, le=100)] = 100,
+    page_size: Annotated[int, Query(alias="pageSize", ge=1, le=100)] = 100,
 ) -> RequirementListResponse:
     records, total = await build_service(session).list_requirements(
         module_id,

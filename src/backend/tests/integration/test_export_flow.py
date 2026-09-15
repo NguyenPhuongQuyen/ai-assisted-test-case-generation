@@ -1,9 +1,13 @@
 # Source assistance: OpenAI ChatGPT, 2026-08-28 (AI-05).
 
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
+from threading import Barrier
+from time import sleep
 
 import pytest
+from app.testcases.export_service import TestCaseExportService as ExportService
 from fastapi.testclient import TestClient
 from openpyxl import load_workbook
 
@@ -214,3 +218,90 @@ def test_export_khong_co_approved_bi_chan(
     )
 
     assert response.status_code == 422
+
+
+def test_concurrent_export_chi_mot_request_duoc_export(
+    client: TestClient,
+    login: Callable[[str], Headers],
+    database_write: DatabaseQuery,
+    database_rows: DatabaseQuery,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Two concurrent export requests must not export the same APPROVED row.
+
+    The artificial delay widens the race window:
+    - without SELECT ... FOR UPDATE, both requests can read APPROVED;
+    - with the row lock, one request commits EXPORTED first and
+      the waiting request no longer finds an APPROVED record.
+    """
+    module_id, requirement_id, qa_headers = create_export_data(
+        client,
+        login,
+    )
+
+    approved_id, draft_id = seed_export_cases(
+        database_write,
+        module_id,
+        requirement_id,
+    )
+
+    original_build_file = ExportService._build_file
+
+    def slow_build_file(
+        self,
+        module_id,
+        export_format,
+        test_cases,
+    ):
+        sleep(0.75)
+        return original_build_file(
+            self,
+            module_id,
+            export_format,
+            test_cases,
+        )
+
+    monkeypatch.setattr(
+        ExportService,
+        "_build_file",
+        slow_build_file,
+    )
+
+    start_gate = Barrier(2)
+
+    def export_once():
+        start_gate.wait(timeout=5)
+
+        return client.get(
+            "/api/v1/test-cases/export",
+            headers=qa_headers,
+            params={
+                "module_id": module_id,
+                "format": "csv",
+            },
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [
+            executor.submit(export_once),
+            executor.submit(export_once),
+        ]
+        responses = [future.result(timeout=15) for future in futures]
+
+    status_codes = sorted(response.status_code for response in responses)
+
+    assert status_codes == [200, 422]
+
+    successful_response = next(response for response in responses if response.status_code == 200)
+
+    content = successful_response.content.decode("utf-8-sig")
+    assert "Approved Booking" in content
+    assert "Draft Booking" not in content
+
+    assert_export_evidence(
+        database_rows,
+        approved_id,
+        draft_id,
+        module_id,
+    )

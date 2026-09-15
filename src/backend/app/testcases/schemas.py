@@ -22,6 +22,17 @@ class GenerationJobResponse(BaseModel):
     error_code: str | None
 
 
+class TestCaseCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    summary: str = Field(min_length=3, max_length=300)
+    preconditions: list[ShortText] = Field(default_factory=list, max_length=20)
+    steps: list[ShortText] = Field(min_length=1, max_length=30)
+    expected_result: str = Field(min_length=3, max_length=1000)
+    priority: Priority
+    test_techniques: list[TechniqueText] = Field(default_factory=list, max_length=10)
+
+
 class TestCaseResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

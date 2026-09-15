@@ -16,6 +16,7 @@ from app.prompt_configs.repository import PromptConfigRepository
 from app.requirements.repository import RequirementRepository
 from app.testcases.models import TestCase
 from app.testcases.repository import TestCaseRepository
+from app.testcases.schemas import TestCaseCreateRequest
 from app.testcases.semantic_text import build_test_case_semantic_text
 from app.testcases.snapshot import build_test_case_snapshot
 from app.testcases.version_repository import TestCaseVersionRepository
@@ -178,3 +179,78 @@ class TestCaseGenerationService:
                 "operation": "generate_test_cases",
             },
         )
+
+
+class TestCaseManualCreateService:
+    _CREATE_ROLES = {
+        UserRole.QA,
+        UserRole.MANAGER,
+    }
+
+    def __init__(
+        self,
+        session: AsyncSession,
+        requirements: RequirementRepository,
+        test_cases: TestCaseRepository,
+        versions: TestCaseVersionRepository,
+    ) -> None:
+        self._session = session
+        self._requirements = requirements
+        self._test_cases = test_cases
+        self._versions = versions
+
+    async def create(
+        self,
+        requirement_id: int,
+        payload: TestCaseCreateRequest,
+        current_user: CurrentUser,
+    ) -> TestCase:
+        if current_user.role not in self._CREATE_ROLES:
+            raise AppError(
+                ErrorCode.FORBIDDEN_ROLE,
+                "Vai trò hiện tại không có quyền tạo test case thủ công.",
+                403,
+            )
+
+        requirement = await self._requirements.get_by_id(requirement_id)
+
+        if requirement is None:
+            raise AppError(
+                ErrorCode.REQUIREMENT_NOT_FOUND,
+                "Không tìm thấy yêu cầu.",
+                404,
+            )
+
+        if current_user.role == UserRole.QA and requirement.created_by != current_user.id:
+            raise AppError(
+                ErrorCode.FORBIDDEN_RECORD,
+                "Bạn không có quyền truy cập yêu cầu này.",
+                403,
+            )
+
+        test_case = TestCase(
+            requirement_id=requirement.id,
+            module_id=requirement.module_id,
+            summary=payload.summary,
+            preconditions=list(payload.preconditions),
+            steps=list(payload.steps),
+            expected_result=payload.expected_result,
+            priority=payload.priority,
+            test_techniques=list(payload.test_techniques),
+            tags=[],
+            review_note=None,
+            status=TestCaseStatus.DRAFT,
+            lock_version=1,
+            created_by=current_user.id,
+        )
+
+        await self._test_cases.save(test_case)
+
+        await self._versions.create_snapshot(
+            test_case_id=test_case.id,
+            snapshot=build_test_case_snapshot(test_case),
+            created_by=current_user.id,
+        )
+
+        await self._session.commit()
+        return test_case

@@ -30,34 +30,57 @@ function splitLines(value: string): string[] {
 
 interface EditorState {
   summary: string;
+  preconditions: string;
   steps: string;
   expected: string;
   priority: Priority;
+  techniques: string;
   note: string;
   setSummary: (value: string) => void;
+  setPreconditions: (value: string) => void;
   setSteps: (value: string) => void;
   setExpected: (value: string) => void;
   setPriority: (value: Priority) => void;
+  setTechniques: (value: string) => void;
   setNote: (value: string) => void;
 }
 
 function useEditorState(record: TestCaseRecord | null): EditorState {
   const [summary, setSummary] = useState("");
+  const [preconditions, setPreconditions] = useState("");
   const [steps, setSteps] = useState("");
   const [expected, setExpected] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
+  const [techniques, setTechniques] = useState("");
   const [note, setNote] = useState("");
   useEffect(() => {
     if (!record) return;
     queueMicrotask(() => {
       setSummary(record.summary);
+      setPreconditions(record.preconditions.join("\n"));
       setSteps(record.steps.join("\n"));
       setExpected(record.expected_result);
       setPriority(record.priority);
+      setTechniques(record.test_techniques.join("\n"));
       setNote(record.review_note ?? "");
     });
   }, [record]);
-  return { summary, steps, expected, priority, note, setSummary, setSteps, setExpected, setPriority, setNote };
+  return {
+    summary,
+    preconditions,
+    steps,
+    expected,
+    priority,
+    techniques,
+    note,
+    setSummary,
+    setPreconditions,
+    setSteps,
+    setExpected,
+    setPriority,
+    setTechniques,
+    setNote,
+  };
 }
 
 function useEditorRequestState(onChanged: TestCaseEditorProps["onChanged"]) {
@@ -110,9 +133,11 @@ export function TestCaseEditor({ token, user, record, onChanged }: TestCaseEdito
       () =>
         updateTestCase(token, activeRecord, {
           summary: editor.summary,
+          preconditions: splitLines(editor.preconditions),
           steps: splitLines(editor.steps),
           expectedResult: editor.expected,
           priority: editor.priority,
+          testTechniques: splitLines(editor.techniques),
           reviewNote: editor.note,
         }),
       "Đã lưu phiên bản chỉnh sửa.",
@@ -181,6 +206,15 @@ function EditorFields({ editor, errors }: { editor: EditorState; errors: ReturnT
         </select>
       </label>
       <label className="wide-field">
+        Preconditions
+        <textarea
+          rows={4}
+          value={editor.preconditions}
+          onChange={(event) => editor.setPreconditions(event.target.value)}
+          placeholder="Mỗi precondition một dòng"
+        />
+      </label>
+      <label className="wide-field">
         Steps
         <textarea rows={7} value={editor.steps} onChange={(event) => editor.setSteps(event.target.value)} />
         <FieldError message={errors.steps} />
@@ -189,6 +223,15 @@ function EditorFields({ editor, errors }: { editor: EditorState; errors: ReturnT
         Expected Result
         <textarea rows={4} value={editor.expected} onChange={(event) => editor.setExpected(event.target.value)} />
         <FieldError message={errors.expected} />
+      </label>
+      <label className="wide-field">
+        Test Techniques
+        <textarea
+          rows={4}
+          value={editor.techniques}
+          onChange={(event) => editor.setTechniques(event.target.value)}
+          placeholder="Mỗi kỹ thuật kiểm thử một dòng"
+        />
       </label>
       <label className="wide-field">
         Review Note

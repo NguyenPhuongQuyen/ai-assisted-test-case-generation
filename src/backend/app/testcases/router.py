@@ -32,6 +32,7 @@ from app.testcases.schemas import (
     GenerationJobResponse,
     ReviewDecisionRequest,
     ReviewTransitionRequest,
+    TestCaseCreateRequest,
     TestCaseListResponse,
     TestCaseResponse,
     TestCaseUpdateRequest,
@@ -40,6 +41,7 @@ from app.testcases.schemas import (
     TestCaseVersionResponse,
     TestCaseVersionRestoreRequest,
 )
+from app.testcases.service import TestCaseManualCreateService
 from app.testcases.version_repository import TestCaseVersionRepository
 from app.testcases.version_service import TestCaseVersionService
 
@@ -78,6 +80,17 @@ def build_job_service(session: AsyncSession) -> GenerationJobService:
 
 def build_query_service(session: AsyncSession) -> TestCaseQueryService:
     return TestCaseQueryService(TestCaseRepository(session))
+
+
+def build_manual_create_service(
+    session: AsyncSession,
+) -> TestCaseManualCreateService:
+    return TestCaseManualCreateService(
+        session=session,
+        requirements=RequirementRepository(session),
+        test_cases=TestCaseRepository(session),
+        versions=TestCaseVersionRepository(session),
+    )
 
 
 def build_review_service(session: AsyncSession) -> TestCaseReviewService:
@@ -149,6 +162,25 @@ async def generate_test_cases(
 ) -> GenerationJobResponse:
     job = await build_job_service(session).submit(requirement_id, current_user)
     return to_job_response(job)
+
+
+@router.post(
+    "/requirements/{requirement_id}/test-cases/manual",
+    response_model=TestCaseResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_manual_test_case(
+    requirement_id: int,
+    payload: TestCaseCreateRequest,
+    session: SessionDep,
+    current_user: CurrentUserDep,
+) -> TestCaseResponse:
+    test_case = await build_manual_create_service(session).create(
+        requirement_id,
+        payload,
+        current_user,
+    )
+    return TestCaseResponse.model_validate(test_case)
 
 
 @router.get(

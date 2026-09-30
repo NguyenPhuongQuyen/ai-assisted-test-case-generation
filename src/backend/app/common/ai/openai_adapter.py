@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 # BR-04: output sai schema được phép sinh lại tối đa 2 lần.
 MAX_SCHEMA_RETRIES = 2
+MAX_RETRY_OUTPUT_TOKENS = 16000
 
 SCHEMA_RETRY_REMINDER = (
     "Lần trả lời trước không đúng Structured Output schema. "
@@ -56,6 +57,7 @@ class OpenAIAdapter:
         prompt_config: PromptRuntimeConfig,
         *,
         schema_reminder: bool,
+        max_output_tokens: int,
     ):
         system_prompt = prompt_config.system_prompt
 
@@ -75,7 +77,7 @@ class OpenAIAdapter:
                 },
             ],
             text_format=GeneratedTestCaseBatch,
-            max_output_tokens=prompt_config.max_output_tokens,
+            max_output_tokens=max_output_tokens,
         )
 
     @staticmethod
@@ -111,11 +113,26 @@ class OpenAIAdapter:
         last_validation_error: ValidationError | None = None
 
         for attempt in range(MAX_SCHEMA_RETRIES + 1):
+            output_budget = min(
+                prompt_config.max_output_tokens * (2**attempt),
+                MAX_RETRY_OUTPUT_TOKENS,
+            )
+
+            logger.info(
+                "OpenAI generation attempt",
+                extra={
+                    "operation": "generate_test_cases",
+                    "attempt": attempt + 1,
+                    "max_output_tokens": output_budget,
+                },
+            )
+
             try:
                 response = await self._parse_response(
                     user_prompt,
                     prompt_config,
                     schema_reminder=attempt > 0,
+                    max_output_tokens=output_budget,
                 )
             except ValidationError as exc:
                 last_validation_error = exc

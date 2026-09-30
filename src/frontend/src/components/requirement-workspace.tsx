@@ -24,12 +24,17 @@ function toMessage(error: unknown): string {
 
 async function waitForJob(token: string, job: GenerationJob): Promise<GenerationJob> {
   let current = job;
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    if (current.status === "completed" || current.status === "failed") return current;
+
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    if (current.status === "completed" || current.status === "failed") {
+      return current;
+    }
+
     await new Promise((resolve) => window.setTimeout(resolve, 1500));
     current = await getGenerationJob(token, job.id);
   }
-  return current;
+
+  throw new Error("Generation vẫn đang xử lý quá 5 phút. Vui lòng thử lại.");
 }
 
 function useModules(token: string) {
@@ -169,7 +174,7 @@ function useGeneration(token: string, requirement: RequirementRecord | null) {
       setNotice(
         finished.status === "completed"
           ? "AI generation hoàn tất. Mở Review Test Case để rà soát."
-          : `Generation thất bại: ${finished.error_code ?? "UNKNOWN"}`,
+          : `Generation thất bại: ${finished.error_code ?? "AI_GENERATION_FAILED"}`,
       );
     } catch (requestError) {
       setError(toMessage(requestError));

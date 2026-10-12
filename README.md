@@ -233,7 +233,7 @@ Quy trình dưới đây đã được kiểm thử lại trên một fresh clon
 ## Bước 1 - Clone repository
 
 ```bash
-git clone -b overall https://github.com/NguyenPhuongQuyen/ai-assisted-test-case-generation.git
+git clone -b main https://github.com/NguyenPhuongQuyen/ai-assisted-test-case-generation.git
 cd ai-assisted-test-case-generation
 ```
 
